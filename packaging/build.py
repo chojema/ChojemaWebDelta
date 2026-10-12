@@ -8,13 +8,16 @@ PyInstaller는 실행한 운영체제용 파일만 만들 수 있다.
 """
 
 import os
+import platform
 import plistlib
 import runpy
 import subprocess
 import sys
+import zipfile
 from pathlib import Path
 
 import PyInstaller.__main__
+from collect_notices import write_notices
 
 ROOT = Path(__file__).resolve().parent.parent
 WEB_DIR = ROOT / "chojema_webdelta" / "web"
@@ -25,6 +28,7 @@ def main() -> None:
     build_dir = ROOT / "build" / "macos" if sys.platform == "darwin" else ROOT / "build"
     if sys.platform == "darwin":
         os.environ.setdefault("PYINSTALLER_CONFIG_DIR", str(build_dir / "cache"))
+    legal_dir = write_notices(build_dir / "legal")
     args = [
         str(ROOT / "packaging" / "run_app.py"),
         "--name", "ChojemaWebDelta",
@@ -33,6 +37,7 @@ def main() -> None:
         "--windowed",  # 콘솔 창 없이 실행. 종료는 화면의 '종료' 버튼으로 한다.
         "--paths", str(ROOT),
         "--add-data", f"{WEB_DIR}{os.pathsep}chojema_webdelta/web",
+        "--add-data", f"{legal_dir}{os.pathsep}legal",
         "--distpath", str(ROOT / "dist"),
         "--workpath", str(build_dir),
         "--specpath", str(build_dir),
@@ -57,6 +62,15 @@ def main() -> None:
             subprocess.run(["xattr", "-dr", attr, str(app)], check=True)
         subprocess.run(["codesign", "--force", "--sign", "-", str(app)], check=True)
         subprocess.run(["codesign", "--verify", "--deep", "--strict", str(app)], check=True)
+    elif sys.platform == "win32":
+        architecture = platform.machine().lower()
+        if architecture in {"amd64", "x86_64"}:
+            architecture = "x64"
+        archive = ROOT / "dist" / f"ChojemaWebDelta-windows-{architecture}.zip"
+        with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
+            bundle.write(ROOT / "dist" / "ChojemaWebDelta.exe", "ChojemaWebDelta.exe")
+            for file in legal_dir.iterdir():
+                bundle.write(file, file.name)
 
 
 if __name__ == "__main__":

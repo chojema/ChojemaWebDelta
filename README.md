@@ -12,10 +12,11 @@
 
 | 운영체제 | 지원 대상 | 다운로드 |
 |---|---|---|
-| Windows | 64비트 x64 | [Windows 실행 파일](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.1.0/ChojemaWebDelta-0.1.0-windows-x64.exe) |
+| Windows | 64비트 x64 | [Windows ZIP](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.1.0/ChojemaWebDelta-0.1.0-windows-x64.zip) |
 | macOS | Apple Silicon(M1 이상), arm64 | [Mac 앱 ZIP](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.1.0/ChojemaWebDelta-0.1.0-macos-arm64.zip) |
 
 [SHA256 체크섬](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.1.0/SHA256SUMS.txt)으로 파일의 무결성을 확인할 수 있습니다.
+두 ZIP에는 프로그램과 함께 `LICENSE.txt`, `THIRD_PARTY_NOTICES.txt`가 들어 있습니다.
 Intel Mac과 Linux에서는 아래의 **소스로 실행** 방법을 사용하세요. 처음 실행할 때 표시될 수 있는 보안 안내는 운영체제별 실행 설명을 참고하세요.
 
 ## 실행
@@ -23,7 +24,8 @@ Intel Mac과 Linux에서는 아래의 **소스로 실행** 방법을 사용하�
 ### Windows: 실행 파일 내려받기
 
 [릴리스 페이지](https://github.com/chojema/ChojemaWebDelta/releases/latest)에서
-`ChojemaWebDelta-<버전>-windows-x64.exe`를 내려받아 더블클릭합니다. Python을 설치할 필요가 없습니다.
+`ChojemaWebDelta-<버전>-windows-x64.zip`을 내려받아 압축을 풀고, 안의 실행 파일을 더블클릭합니다. Python을 설치할 필요가 없습니다.
+단독 `.exe`도 같은 릴리스에서 제공하며, 이 경우 릴리스에 함께 제공하는 `LICENSE.txt`, `THIRD_PARTY_NOTICES.txt`가 라이선스 고지입니다.
 
 - 서명되지 않은 프로그램이라 처음 실행할 때 "Windows의 PC 보호" 창이 뜰 수 있습니다. **추가 정보 → 실행**을 누르면 실행됩니다.
 - 이런 방식으로 묶은 실행 파일은 일부 백신이 악성으로 잘못 판정하는 경우가 있습니다. 마음에 걸리면 아래의 소스로 실행하는 방법을 쓰세요.
@@ -204,6 +206,7 @@ python packaging/build.py
 ```
 
 Windows에서는 `dist/ChojemaWebDelta.exe`, macOS에서는 `dist/ChojemaWebDelta.app`이 만들어집니다.
+빌드할 때 설치된 의존성의 라이선스와 Python 런타임 고지를 모아 프로그램에 포함합니다. Windows에서는 실행 파일과 고지를 함께 담은 `dist/ChojemaWebDelta-windows-<아키텍처>.zip`도 만듭니다.
 
 macOS에서는 다음 명령으로 전용 환경 생성, 의존성 설치, 앱 빌드를 한 번에 실행할 수 있습니다.
 
@@ -217,3 +220,11 @@ Mac용 환경은 `.venv-macos`, 빌드 중간 파일은 `build/macos`에 보관�
 이 스크립트는 빌드한 Mac의 CPU 아키텍처용 앱을 만듭니다.
 `dist/ChojemaWebDelta-macos-<아키텍처>.zip`도 함께 생성됩니다. 동기화 폴더에서 앱의 Finder 메타데이터가 다시 붙어 서명 검증이 실패하면, ZIP을 동기화하지 않는 폴더에 풀어 실행하세요.
 Mac 앱은 로컬 실행용 임시 서명(ad hoc)을 사용하며, Apple의 배포용 서명과 공증은 포함하지 않습니다.
+
+## 라이선스
+
+ChojemaWebDelta의 원본 코드(v0.1.0 포함)는 [MIT 라이선스](LICENSE)로 제공합니다.
+사용·수정·상업적 재배포가 가능하며, 저작권과 라이선스 고지를 유지해야 합니다.
+
+포함된 Python 런타임과 외부 라이브러리는 각각의 라이선스를 따릅니다. 전체 고지와 원본 소스 배포 위치는 [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt)에 있습니다.
+프로그램을 다시 배포할 때는 `LICENSE.txt`와 `THIRD_PARTY_NOTICES.txt`를 함께 제공하세요.

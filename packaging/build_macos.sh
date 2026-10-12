@@ -22,8 +22,10 @@ cp requirements.txt .venv-macos/requirements.installed
 xattr -dr com.apple.FinderInfo dist/ChojemaWebDelta.app
 xattr -dr com.apple.ResourceFork dist/ChojemaWebDelta.app
 codesign --verify --deep --strict dist/ChojemaWebDelta.app
-ditto -c -k --keepParent --norsrc --noextattr \
-  dist/ChojemaWebDelta.app "dist/ChojemaWebDelta-macos-$(uname -m).zip"
+# 앱과 함께 읽을 수 있도록 라이선스 고지를 ZIP에도 둔다.
+ARCHIVE="dist/ChojemaWebDelta-macos-$(uname -m).zip"
+ditto -c -k --keepParent --norsrc --noextattr dist/ChojemaWebDelta.app "$ARCHIVE"
+/usr/bin/zip -j -X "$ARCHIVE" build/macos/legal/LICENSE.txt build/macos/legal/THIRD_PARTY_NOTICES.txt
 
 echo "빌드 완료: dist/ChojemaWebDelta.app"
 echo "압축본: dist/ChojemaWebDelta-macos-$(uname -m).zip"

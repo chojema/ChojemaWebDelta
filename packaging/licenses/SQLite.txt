@@ -1,0 +1,7 @@
+SQLite
+Source: https://www.sqlite.org/copyright.html
+Source code: https://www.sqlite.org/src/
+
+SQLite is dedicated to the public domain by its authors. It is used without
+source changes in the Windows Python runtime. The public-domain dedication
+does not change the licenses of Python's sqlite3 wrapper or other components.
