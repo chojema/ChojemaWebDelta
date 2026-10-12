@@ -6,6 +6,18 @@
 
 외부 서비스나 AI를 쓰지 않고, 내 PC 안에서 규칙 기반으로만 동작합니다.
 
+## 다운로드
+
+현재 배포 버전은 [v0.1.0](https://github.com/chojema/ChojemaWebDelta/releases/tag/v0.1.0)입니다. 아래 실행 파일에는 Python이 포함되어 있습니다.
+
+| 운영체제 | 지원 대상 | 다운로드 |
+|---|---|---|
+| Windows | 64비트 x64 | [Windows 실행 파일](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.1.0/ChojemaWebDelta-0.1.0-windows-x64.exe) |
+| macOS | Apple Silicon(M1 이상), arm64 | [Mac 앱 ZIP](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.1.0/ChojemaWebDelta-0.1.0-macos-arm64.zip) |
+
+[SHA256 체크섬](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.1.0/SHA256SUMS.txt)으로 파일의 무결성을 확인할 수 있습니다.
+Intel Mac과 Linux에서는 아래의 **소스로 실행** 방법을 사용하세요. 처음 실행할 때 표시될 수 있는 보안 안내는 운영체제별 실행 설명을 참고하세요.
+
 ## 실행
 
 ### Windows: 실행 파일 내려받기
@@ -33,7 +45,8 @@
 ### 소스로 실행 (Windows, macOS, Linux)
 
 Python 3.10 이상이 필요합니다. 이 저장소를 내려받은 뒤 아래 파일을 실행합니다.
-처음 실행할 때 전용 환경(`.venv`)을 만들고 필요한 패키지를 설치합니다.
+처음 실행할 때 운영체제별 전용 환경을 만들고 필요한 패키지를 설치합니다.
+Windows는 `.venv`, macOS는 `.venv-macos`, Linux는 `.venv-linux`를 사용하므로 같은 프로젝트 폴더에서 함께 관리할 수 있습니다.
 
 | 운영체제 | 방법 |
 |---|---|
@@ -152,12 +165,12 @@ a[href^="/releases/tag/"]     주소가 이 글자로 시작하는 링크    <a 
 |---|---|---|
 | 프로그램 | 내려받은 `ChojemaWebDelta-…-windows-x64.exe` | `ChojemaWebDelta.app` |
 | 데이터 폴더 | `%APPDATA%\ChojemaWebDelta` | `~/Library/Application Support/ChojemaWebDelta` |
-| 데이터 폴더 여는 법 | 탐색기 주소창에 `%APPDATA%` 입력 | Finder에서 **이동 → 폴더로 이동**(⇧⌘G)에 `~/Library/Application Support` 입력 |
+| 데이터 폴더 여는 법 | 탐색기 주소창에 `%APPDATA%\ChojemaWebDelta` 입력 | Finder에서 **이동 → 폴더로 이동**(⇧⌘G)에 `~/Library/Application Support/ChojemaWebDelta` 입력 |
 
-두 폴더 모두 평소에는 숨겨져 있어 위 방법으로 열어야 합니다. Linux의 데이터 폴더는 `~/.local/share/ChojemaWebDelta`입니다.
+Windows의 `AppData`와 macOS의 사용자 `Library` 폴더는 기본적으로 숨겨져 있으므로 위 방법으로 데이터 폴더를 여세요. macOS의 **응용 프로그램** 폴더는 숨겨져 있지 않으며, 그곳으로 옮긴 앱은 Finder에서 찾을 수 있습니다. Linux의 데이터 폴더는 `~/.local/share/ChojemaWebDelta`입니다.
 
 - **목록을 남겨 두려면** 지우기 전에 **목록 관리 → 내보내기**로 파일을 저장해 두세요.
-- **스크립트(`run.bat`, `run.sh`, `run.command`)로 써 왔다면** 프로그램 대신 내려받은 프로젝트 폴더를 통째로 지웁니다. 전용 Python 환경(`.venv`)도 그 안에 있습니다.
+- **스크립트(`run.bat`, `run.sh`, `run.command`)로 써 왔다면** 프로그램 대신 내려받은 프로젝트 폴더를 통째로 지웁니다. 전용 Python 환경(`.venv`, `.venv-macos`, `.venv-linux`)도 그 안에 있습니다.
 - **`CHOJEMA_WEBDELTA_DATA`로 다른 폴더를 지정했다면** 데이터는 그 폴더에 있습니다.
 - **앱은 두고 처음 상태로 되돌리려면** 데이터 폴더만 지웁니다. 다음에 실행하면 빈 목록으로 시작합니다.
 
@@ -191,3 +204,16 @@ python packaging/build.py
 ```
 
 Windows에서는 `dist/ChojemaWebDelta.exe`, macOS에서는 `dist/ChojemaWebDelta.app`이 만들어집니다.
+
+macOS에서는 다음 명령으로 전용 환경 생성, 의존성 설치, 앱 빌드를 한 번에 실행할 수 있습니다.
+
+```sh
+bash packaging/build_macos.sh
+```
+
+Mac용 환경은 `.venv-macos`, 빌드 중간 파일은 `build/macos`에 보관합니다.
+기존 Windows용 `.venv`와 `dist/ChojemaWebDelta.exe`는 유지됩니다.
+빌드한 `dist/ChojemaWebDelta.app`을 더블클릭하면 브라우저에 화면이 열리며, 실행할 Mac에 Python을 따로 설치할 필요가 없습니다.
+이 스크립트는 빌드한 Mac의 CPU 아키텍처용 앱을 만듭니다.
+`dist/ChojemaWebDelta-macos-<아키텍처>.zip`도 함께 생성됩니다. 동기화 폴더에서 앱의 Finder 메타데이터가 다시 붙어 서명 검증이 실패하면, ZIP을 동기화하지 않는 폴더에 풀어 실행하세요.
+Mac 앱은 로컬 실행용 임시 서명(ad hoc)을 사용하며, Apple의 배포용 서명과 공증은 포함하지 않습니다.
