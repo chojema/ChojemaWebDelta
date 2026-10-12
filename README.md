@@ -10,18 +10,18 @@ It uses no external service or AI. Everything runs on your own computer with pla
 
 ## Download
 
-The current release is [v0.1.0](https://github.com/chojema/ChojemaWebDelta/releases/tag/v0.1.0). The executables below include Python.
+The current release is [v0.2.0](https://github.com/chojema/ChojemaWebDelta/releases/tag/v0.2.0). The executables below include Python.
 
 | OS | Supported | Download |
 |---|---|---|
-| Windows | 64-bit x64 | [Windows ZIP](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.1.0/ChojemaWebDelta-0.1.0-windows-x64.zip) |
-| macOS | Apple Silicon (M1 or later), arm64 | [Mac app ZIP](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.1.0/ChojemaWebDelta-0.1.0-macos-arm64.zip) |
+| Windows | 64-bit x64 | [Windows ZIP](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.2.0/ChojemaWebDelta-0.2.0-windows-x64.zip) |
+| macOS | Apple Silicon (M1 or later), arm64 | Coming soon |
 
-You can verify the files with the [SHA256 checksums](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.1.0/SHA256SUMS.txt).
-Both ZIPs contain `LICENSE.txt` and `THIRD_PARTY_NOTICES.txt` along with the program.
+You can verify the files with the [SHA256 checksums](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.2.0/SHA256SUMS.txt).
+The ZIP contains `LICENSE.txt` and `THIRD_PARTY_NOTICES.txt` along with the program.
 On Intel Macs and Linux, use **Run from source** below. For the security prompts that may appear on first launch, see the instructions for each OS.
 
-The screen of the v0.1.0 executables is in Korean only. The Korean and English screen is available when you run from source, and will be included in the executables from the next release.
+The macOS app for v0.2.0 has not been published yet. Until it is, run from source on a Mac, or use the [v0.1.0 Mac app](https://github.com/chojema/ChojemaWebDelta/releases/tag/v0.1.0), whose screen is in Korean only.
 
 ## Running
 
@@ -40,6 +40,7 @@ A standalone `.exe` is also provided in the same release; in that case the `LICE
 
 From the [releases page](https://github.com/chojema/ChojemaWebDelta/releases/latest), download
 `ChojemaWebDelta-<version>-macos-arm64.zip`. It is **for Apple Silicon (M1 or later) Macs**; no executable for Intel Macs is included. You do not need to install Python.
+The Mac app for v0.2.0 is not available yet; until it is, the latest Mac app is in the [v0.1.0 release](https://github.com/chojema/ChojemaWebDelta/releases/tag/v0.1.0).
 
 1. Extract the ZIP and move `ChojemaWebDelta.app` to the **Applications** folder.
 2. Double-click the app and the screen opens in your browser. To stop it, press **Quit** on the screen.
