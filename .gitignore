@@ -1,0 +1,13 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# 묶기(PyInstaller) 산출물
+build/
+dist/
+*.spec
+
+# 사용자 데이터: 지켜보는 사이트 목록과 스냅샷은 저장소에 올리지 않는다
+*.sqlite3
+data/
