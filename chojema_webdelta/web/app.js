@@ -1,12 +1,17 @@
 "use strict";
 
 const POLL_INTERVAL_MS = 600;
-const STATUS_LABELS = {
-  changed: "변경됨",
-  unchanged: "변경 없음",
-  error: "점검 실패",
-  new: "기준 저장됨",
-  idle: "점검 전",
+const LANGUAGES = ["ko", "en"];
+const FALLBACK_LANGUAGE = "en";
+// 브라우저 설정에 해당 언어의 지역이 없을 때 날짜·시각 표기에 쓰는 지역
+const FALLBACK_LOCALES = { ko: "ko-KR", en: "en-US" };
+const LANG_STORAGE_KEY = "chojema-webdelta-lang";
+const STATUS_KEYS = {
+  changed: "status_changed",
+  unchanged: "status_unchanged",
+  error: "status_error",
+  new: "status_new",
+  idle: "status_idle",
 };
 // 눈에 먼저 띄어야 하는 순서
 const STATUS_ORDER = ["changed", "error", "new", "idle", "unchanged"];
@@ -14,37 +19,65 @@ const SORT_STORAGE_KEY = "chojema-webdelta-sort";
 // 자동 확인 주기의 기본 목록(초). 0은 끔.
 const AUTO_PRESETS = [0, 60, 300, 600, 1800, 3600, 7200, 86400, 604800];
 const SHORT_INTERVAL_SECONDS = 300;
+const INTERVAL_UNITS = [[86400, "unit_day"], [3600, "unit_hour"], [60, "unit_minute"], [1, "unit_second"]];
 const SORTERS = {
   status: (a, b) => STATUS_ORDER.indexOf(statusOf(a)) - STATUS_ORDER.indexOf(statusOf(b)) || a.id - b.id,
   newest: (a, b) => b.created_at.localeCompare(a.created_at) || b.id - a.id,
   oldest: (a, b) => a.created_at.localeCompare(b.created_at) || a.id - b.id,
-  name: (a, b) => a.name.localeCompare(b.name, "ko") || a.id - b.id,
+  name: (a, b) => a.name.localeCompare(b.name, lang) || a.id - b.id,
 };
 // 편집 창에 보여 주는 영역(CSS 선택자) 예시. tests/test_app.py의 SelectorExamplesTest가 같은 선택자를 검증한다.
 const SELECTOR_EXAMPLES = [
-  { pattern: "#content", label: "id가 content인 것", sample: '<div id="content">' },
-  { pattern: ".board-list", label: "class에 board-list가 있는 것", sample: '<ul class="board-list">' },
-  { pattern: "a.Link--primary", label: "태그와 class를 함께", sample: '<a class="Link--primary Link">' },
-  { pattern: 'a[href^="/releases/tag/"]', label: "주소가 이 글자로 시작하는 링크", sample: '<a href="/releases/tag/v1.0">' },
-  { pattern: "#content .title", label: "#content 안에 있는 .title", sample: "" },
-  { pattern: "#notice, #schedule", label: "두 영역을 함께", sample: "" },
+  { pattern: "#content", labelKey: "selector_example_id", sample: '<div id="content">' },
+  { pattern: ".board-list", labelKey: "selector_example_class", sample: '<ul class="board-list">' },
+  { pattern: "a.Link--primary", labelKey: "selector_example_tag_class", sample: '<a class="Link--primary Link">' },
+  { pattern: 'a[href^="/releases/tag/"]', labelKey: "selector_example_href", sample: '<a href="/releases/tag/v1.0">' },
+  { pattern: "#content .title", labelKey: "selector_example_inside", sample: "" },
+  { pattern: "#notice, #schedule", labelKey: "selector_example_both", sample: "" },
 ];
-// 편집 창에 보여 주는 무시 패턴 예시. tests/test_app.py의 IgnorePatternExamplesTest가 같은 패턴을 검증한다.
-const IGNORE_EXAMPLES = [
-  { pattern: "조회수?\\s*:?\\s*[\\d,]+", label: "조회수", sample: "조회 1,234 / 조회수: 56" },
-  { pattern: "\\d{4}[-./]\\s?\\d{1,2}[-./]\\s?\\d{1,2}\\.?", label: "날짜", sample: "2026-10-12 / 2026. 10. 12." },
-  { pattern: "\\d{1,2}:\\d{2}(:\\d{2})?", label: "시각", sample: "09:05 / 09:05:30" },
-  { pattern: "\\d+\\s*(초|분|시간|일)\\s*전", label: "지난 시간", sample: "3분 전 / 2 시간 전" },
-  { pattern: "(댓글|추천|좋아요)\\s*\\(?[\\d,]+\\)?", label: "댓글·추천 수", sample: "댓글 (12) / 추천 3" },
-  { pattern: "^.*광고.*$", label: "특정 낱말이 든 줄 전체", sample: "'광고'가 들어간 줄" },
-  { pattern: "^오늘 방문자.*$", label: "특정 말로 시작하는 줄 전체", sample: "오늘 방문자 1,024명" },
-  { pattern: "(?i)copyright.*$", label: "영문 대소문자 구분 없이, 그 뒤 끝까지", sample: "Copyright © 2026 …" },
-];
+// 편집 창에 보여 주는 무시 패턴 예시. 언어마다 그 언어의 페이지에서 흔한 표현을 싣는다.
+// tests/test_app.py의 IgnorePatternExamplesTest가 같은 패턴을 검증한다.
+const IGNORE_EXAMPLES = {
+  ko: [
+    { pattern: "조회수?\\s*:?\\s*[\\d,]+", label: "조회수", sample: "조회 1,234 / 조회수: 56" },
+    { pattern: "\\d{4}[-./]\\s?\\d{1,2}[-./]\\s?\\d{1,2}\\.?", label: "날짜", sample: "2026-10-12 / 2026. 10. 12." },
+    { pattern: "\\d{1,2}:\\d{2}(:\\d{2})?", label: "시각", sample: "09:05 / 09:05:30" },
+    { pattern: "\\d+\\s*(초|분|시간|일)\\s*전", label: "지난 시간", sample: "3분 전 / 2 시간 전" },
+    { pattern: "(댓글|추천|좋아요)\\s*\\(?[\\d,]+\\)?", label: "댓글·추천 수", sample: "댓글 (12) / 추천 3" },
+    { pattern: "^.*광고.*$", label: "특정 낱말이 든 줄 전체", sample: "'광고'가 들어간 줄" },
+    { pattern: "^오늘 방문자.*$", label: "특정 말로 시작하는 줄 전체", sample: "오늘 방문자 1,024명" },
+    { pattern: "(?i)copyright.*$", label: "영문 대소문자 구분 없이, 그 뒤 끝까지", sample: "Copyright © 2026 …" },
+  ],
+  en: [
+    { pattern: "(?i)views?:?\\s*[\\d,]+|[\\d,.]+k?\\s*views?", label: "View count", sample: "Views: 1,234 / 1.2K views" },
+    { pattern: "\\d{4}[-./]\\d{1,2}[-./]\\d{1,2}", label: "Numeric date", sample: "2026-10-12 / 2026/10/12" },
+    {
+      pattern: "(?i)(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?\\s+\\d{1,2},?\\s+\\d{4}",
+      label: "Date with a month name", sample: "Oct 12, 2026 / October 12 2026",
+    },
+    { pattern: "(?i)\\d{1,2}:\\d{2}(:\\d{2})?(\\s*[ap]\\.?m\\.?)?", label: "Time", sample: "09:05 / 9:05:30 PM" },
+    {
+      pattern: "(?i)\\d+\\s*(seconds?|minutes?|mins?|hours?|hrs?|days?)\\s+ago",
+      label: "Elapsed time", sample: "3 minutes ago / 2 hrs ago",
+    },
+    {
+      pattern: "(?i)[\\d,]+\\s*(comments?|likes?|replies)|(comments?|likes?|replies)\\s*\\(?[\\d,]+\\)?",
+      label: "Comment and like counts", sample: "12 comments / Likes (3)",
+    },
+    { pattern: "^.*Sponsored.*$", label: "Whole lines containing a word", sample: "Lines that contain 'Sponsored'" },
+    { pattern: "^Visitors today.*$", label: "Whole lines starting with a phrase", sample: "Visitors today: 1,024" },
+    { pattern: "(?i)copyright.*$", label: "Case-insensitive, to the end of the line", sample: "Copyright © 2026 …" },
+  ],
+};
 
 const $ = (id) => document.getElementById(id);
 const dialog = $("site-dialog");
 const form = $("site-form");
 
+let messages = {};
+let lang = FALLBACK_LANGUAGE;
+let locale = FALLBACK_LOCALES[lang];
+let pluralRules = new Intl.PluralRules(lang);
 let state = {
   sites: [],
   job: { running: false, total: 0, done: 0, checking: [] },
@@ -59,6 +92,18 @@ let sortKey = loadSortKey();
 const openDiffs = new Set();
 const selected = new Set();
 
+// 문구 목록(messages.json)에서 현재 언어의 문장을 찾아 {이름} 자리에 값을 넣는다.
+function t(key, params = {}) {
+  const template = messages[lang]?.[key] ?? messages[FALLBACK_LANGUAGE]?.[key] ?? key;
+  return template.replace(/\{(\w+)\}/g, (match, name) => (name in params ? params[name] : match));
+}
+
+// 개수에 따라 문장이 달라지는 문구. 영어는 key_one과 key_other를, 한국어는 key_other만 둔다.
+function tn(key, count, params = {}) {
+  const form = `${key}_${pluralRules.select(count)}`;
+  return t(form in (messages[lang] || {}) ? form : `${key}_other`, { count, ...params });
+}
+
 function el(tag, props = {}, children = []) {
   const node = document.createElement(tag);
   for (const [key, value] of Object.entries(props)) {
@@ -72,14 +117,15 @@ function el(tag, props = {}, children = []) {
 }
 
 async function api(method, path, body) {
-  const options = { method, headers: {} };
+  // 서버가 만드는 오류 문구도 화면과 같은 언어로 받는다.
+  const options = { method, headers: { "Accept-Language": lang } };
   if (method !== "GET") {
     options.headers["Content-Type"] = "application/json";
     options.body = JSON.stringify(body ?? {});
   }
   const response = await fetch(path, options);
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || `요청 실패 (${response.status})`);
+  if (!response.ok) throw new Error(data.error || t("request_failed", { status: response.status }));
   return data;
 }
 
@@ -98,19 +144,64 @@ function saveSortKey() {
   } catch (error) { /* 기억하지 못해도 정렬은 적용된다 */ }
 }
 
+// 고른 언어가 없으면 브라우저의 언어 설정을 따른다.
+function detectLanguage() {
+  try {
+    const saved = localStorage.getItem(LANG_STORAGE_KEY);
+    if (LANGUAGES.includes(saved)) return saved;
+  } catch (error) { /* 브라우저 설정 사용 */ }
+  for (const tag of navigator.languages || [navigator.language || ""]) {
+    const primary = tag.toLowerCase().split("-")[0];
+    if (LANGUAGES.includes(primary)) return primary;
+  }
+  return FALLBACK_LANGUAGE;
+}
+
+function saveLanguage() {
+  try {
+    localStorage.setItem(LANG_STORAGE_KEY, lang);
+  } catch (error) { /* 기억하지 못해도 이번 화면에는 적용된다 */ }
+}
+
+function applyStaticText() {
+  for (const node of document.querySelectorAll("[data-i18n]")) node.textContent = t(node.dataset.i18n);
+  // 문구 목록은 앱에 포함된 파일이므로 그 안의 태그(<code>, <strong>)를 그대로 쓴다.
+  for (const node of document.querySelectorAll("[data-i18n-html]")) node.innerHTML = t(node.dataset.i18nHtml);
+  for (const node of document.querySelectorAll("[data-i18n-attr]")) {
+    for (const pair of node.dataset.i18nAttr.split(",")) {
+      const [attribute, key] = pair.split(":");
+      node.setAttribute(attribute, t(key, { name: node.dataset.i18nName }));
+    }
+  }
+}
+
+function setLanguage(next) {
+  lang = next;
+  locale = (navigator.languages || []).find((tag) => tag.toLowerCase().split("-")[0] === lang)
+    || FALLBACK_LOCALES[lang];
+  pluralRules = new Intl.PluralRules(lang);
+  document.documentElement.lang = lang;
+  $("lang").value = lang;
+  applyStaticText();
+  renderExamples("selector-examples", SELECTOR_EXAMPLES, addSelector);
+  renderExamples("pattern-examples", IGNORE_EXAMPLES[lang], addIgnorePattern);
+  renderAutoOptions();
+  tickClock();
+  lastRendered = "";
+}
+
 function statusOf(site) {
   return site.status || "idle";
 }
 
 function formatInterval(seconds) {
-  if (!seconds) return "끔";
-  if (seconds === 604800) return "1주일";
-  const units = [[86400, "일"], [3600, "시간"], [60, "분"], [1, "초"]];
+  if (!seconds) return t("off");
+  if (seconds === 604800) return t("interval_week");
   const parts = [];
   let rest = seconds;
-  for (const [size, label] of units) {
+  for (const [size, key] of INTERVAL_UNITS) {
     const count = Math.floor(rest / size);
-    if (count) parts.push(`${count}${label}`);
+    if (count) parts.push(tn(key, count));
     rest -= count * size;
   }
   return parts.join(" ");
@@ -120,7 +211,7 @@ function formatTime(iso) {
   if (!iso) return "";
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleString("ko-KR", {
+  return date.toLocaleString(locale, {
     month: "long", day: "numeric", hour: "2-digit", minute: "2-digit",
   });
 }
@@ -136,7 +227,7 @@ async function refresh() {
     state = await api("GET", "/api/state");
   } catch (error) {
     stopPolling();
-    showNotice("앱과 연결이 끊겼습니다. 앱을 다시 실행한 뒤 이 화면을 새로 고치세요.");
+    showNotice(t("connection_lost"));
     return;
   }
   render();
@@ -192,7 +283,7 @@ function render() {
   const liveIds = new Set(state.sites.map((site) => site.id));
   for (const id of selected) if (!liveIds.has(id)) selected.delete(id);
   const fingerprint = JSON.stringify(
-    [state, [...openDiffs], confirmingDeleteId, sortKey, [...selected]],
+    [state, [...openDiffs], confirmingDeleteId, sortKey, [...selected], lang],
   );
   if (fingerprint === lastRendered) return;
   lastRendered = fingerprint;
@@ -204,20 +295,21 @@ function render() {
 
   const { interval_seconds: autoInterval, next_check_at: nextCheckAt } = state.auto;
   // 꺼져 있을 때는 상태("끔")가 아니라 누르면 일어날 일("켜기")을 적는다.
-  $("auto").textContent = autoInterval ? `자동 확인: ${formatInterval(autoInterval)}` : "자동 확인 켜기";
+  $("auto").textContent = autoInterval
+    ? t("auto_button", { interval: formatInterval(autoInterval) }) : t("auto_turn_on");
   $("auto-status").hidden = !autoInterval;
   if (autoInterval) {
-    const next = new Date(nextCheckAt).toLocaleTimeString("ko-KR", {
-      hour: "2-digit", minute: "2-digit", second: "2-digit",
-    });
-    const nextDay = new Date(nextCheckAt).toDateString() === new Date().toDateString()
-      ? "" : `${formatTime(nextCheckAt).split(" 오")[0]} `;
+    const next = new Date(nextCheckAt);
+    const time = next.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    const day = next.toDateString() === new Date().toDateString()
+      ? "" : `${next.toLocaleDateString(locale, { month: "long", day: "numeric" })} `;
     $("auto-status").textContent =
-      `${formatInterval(autoInterval)}마다 자동 확인 · 다음 확인 ${nextDay}${next}`;
+      t("auto_status", { interval: formatInterval(autoInterval), when: `${day}${time}` });
   }
 
   $("check-all").disabled = job.running || sites.length === 0;
-  $("check-all").textContent = job.running ? `확인하는 중… ${job.done}/${job.total}` : "변경 확인";
+  $("check-all").textContent = job.running
+    ? t("checking_progress", { done: job.done, total: job.total }) : t("check_all");
   $("progress").hidden = !job.running;
   if (job.running) {
     const ratio = job.total ? job.done / job.total : 0;
@@ -226,11 +318,11 @@ function render() {
 
   const counts = {};
   for (const site of sites) counts[statusOf(site)] = (counts[statusOf(site)] || 0) + 1;
-  const countBadges = [el("span", { class: "badge", text: `전체 ${sites.length}` })];
+  const countBadges = [el("span", { class: "badge", text: t("count_total", { count: sites.length }) })];
   for (const status of STATUS_ORDER) {
     if (counts[status]) {
       countBadges.push(el("span", {
-        class: `badge ${status}`, text: `${STATUS_LABELS[status]} ${counts[status]}`,
+        class: `badge ${status}`, text: `${t(STATUS_KEYS[status])} ${counts[status]}`,
       }));
     }
   }
@@ -245,7 +337,7 @@ function render() {
   $("export").disabled = sites.length === 0;
   $("delete-all").disabled = sites.length === 0;
   $("selection").hidden = selected.size === 0;
-  $("selection-count").textContent = `${selected.size}개 선택됨`;
+  $("selection-count").textContent = tn("selection_count", selected.size);
   $("select-all").checked = selected.size === sites.length;
   $("select-all").indeterminate = selected.size > 0 && selected.size < sites.length;
 }
@@ -256,7 +348,7 @@ function renderSite(site) {
   const busy = state.job.running;
 
   const pick = el("input", {
-    class: "pick", type: "checkbox", "aria-label": `${site.name} 선택`,
+    class: "pick", type: "checkbox", "aria-label": t("pick_site", { name: site.name }),
     onchange: (event) => {
       event.target.checked ? selected.add(site.id) : selected.delete(site.id);
       render();
@@ -266,23 +358,25 @@ function renderSite(site) {
 
   const head = el("div", { class: "site-head" }, [
     pick,
-    el("span", { class: `badge ${status}`, text: checking ? "확인하는 중…" : STATUS_LABELS[status] }),
+    el("span", { class: `badge ${status}`, text: checking ? t("checking") : t(STATUS_KEYS[status]) }),
     el("a", {
       class: "site-name", href: site.url, target: "_blank", rel: "noopener noreferrer",
-      title: "새 탭에서 페이지 열기", text: site.name,
+      title: t("open_page_title"), text: site.name,
     }),
   ]);
   if (status === "changed") {
     const added = site.diff.filter((line) => line.kind === "add").length;
     const removed = site.diff.filter((line) => line.kind === "del").length;
-    head.append(el("span", { class: "muted", text: `추가 ${added}줄 · 삭제 ${removed}줄` }));
+    head.append(el("span", { class: "muted", text: t("diff_summary", { added, removed }) }));
   }
 
   // 카드는 두 줄: 윗줄에 상태·이름·버튼, 아랫줄에 주소와 부가 정보.
   const metaParts = [site.url];
-  if (site.selector) metaParts.push(`영역: ${site.selector}`);
-  if (site.last_checked_at) metaParts.push(`마지막 점검 ${formatTime(site.last_checked_at)}`);
-  if (sortKey === "newest" || sortKey === "oldest") metaParts.push(`추가 ${formatTime(site.created_at)}`);
+  if (site.selector) metaParts.push(t("meta_region", { selector: site.selector }));
+  if (site.last_checked_at) metaParts.push(t("meta_last_checked", { time: formatTime(site.last_checked_at) }));
+  if (sortKey === "newest" || sortKey === "oldest") {
+    metaParts.push(t("meta_added", { time: formatTime(site.created_at) }));
+  }
   const meta = el("div", { class: "site-meta muted", title: site.url });
   if (status === "error" && site.last_error) {
     meta.append(el("span", { class: "site-error", text: site.last_error }), " · ");
@@ -294,11 +388,11 @@ function renderSite(site) {
     const open = openDiffs.has(site.id);
     head.append(
       el("button", {
-        class: "small", type: "button", text: open ? "변경 내용 접기" : "변경 내용 보기",
+        class: "small", type: "button", text: open ? t("diff_hide") : t("diff_show"),
         onclick: () => { open ? openDiffs.delete(site.id) : openDiffs.add(site.id); render(); },
       }),
       el("button", {
-        class: "small", type: "button", text: "확인함", title: "현재 상태를 새 기준으로 삼습니다",
+        class: "small", type: "button", text: t("ack"), title: t("ack_title"),
         onclick: () => act(() => api("POST", `/api/sites/${site.id}/ack`)),
       }),
     );
@@ -306,28 +400,28 @@ function renderSite(site) {
   head.append(
     el("span", { class: "spacer" }),
     el("button", {
-      class: "small quiet", type: "button", text: "점검", title: "이 사이트만 다시 확인",
+      class: "small quiet", type: "button", text: t("check_site"), title: t("check_site_title"),
       ...(busy ? { disabled: "" } : {}),
       onclick: () => act(() => api("POST", "/api/check", { site_ids: [site.id] })),
     }),
     el("button", {
-      class: "small quiet", type: "button", text: "편집", onclick: () => openDialog(site),
+      class: "small quiet", type: "button", text: t("edit"), onclick: () => openDialog(site),
     }),
   );
   if (confirmingDeleteId === site.id) {
     head.append(
       el("button", {
-        class: "small danger", type: "button", text: "정말 삭제",
+        class: "small danger", type: "button", text: t("delete_confirm"),
         onclick: () => { confirmingDeleteId = null; act(() => api("DELETE", `/api/sites/${site.id}`)); },
       }),
       el("button", {
-        class: "small quiet", type: "button", text: "취소",
+        class: "small quiet", type: "button", text: t("cancel"),
         onclick: () => { confirmingDeleteId = null; render(); },
       }),
     );
   } else {
     head.append(el("button", {
-      class: "small quiet", type: "button", text: "삭제",
+      class: "small quiet", type: "button", text: t("delete"),
       onclick: () => { confirmingDeleteId = site.id; render(); },
     }));
   }
@@ -339,7 +433,7 @@ function renderDiff(site) {
   const marks = { add: "+", del: "−", ctx: " " };
   const box = el("div", { class: "diff" });
   if (site.diff.length === 0) {
-    box.append(el("div", { class: "diff-note", text: "표시할 차이가 없습니다." }));
+    box.append(el("div", { class: "diff-note", text: t("diff_empty") }));
   }
   for (const line of site.diff) {
     if (line.kind === "gap") {
@@ -352,14 +446,14 @@ function renderDiff(site) {
     ]));
   }
   if (site.diff_truncated) {
-    box.append(el("div", { class: "diff-note", text: "변경이 많아 앞부분만 표시했습니다." }));
+    box.append(el("div", { class: "diff-note", text: t("diff_truncated") }));
   }
   return box;
 }
 
 function openDialog(site) {
   editingId = site ? site.id : null;
-  $("dialog-title").textContent = site ? "사이트 편집" : "사이트 추가";
+  $("dialog-title").textContent = site ? t("edit_site") : t("add_site");
   form.reset();
   if (site) {
     for (const name of ["url", "name", "selector", "ignore_patterns"]) {
@@ -390,16 +484,13 @@ function addSelector(selector) {
 function renderExamples(listId, examples, onPick) {
   $(listId).replaceChildren(...examples.map((example) => el("li", {}, [
     el("button", {
-      class: "example", type: "button", text: example.pattern, title: "눌러서 추가",
+      class: "example", type: "button", text: example.pattern, title: t("example_add_title"),
       onclick: () => onPick(example.pattern),
     }),
-    el("span", { text: example.label }),
+    el("span", { text: example.labelKey ? t(example.labelKey) : example.label }),
     el("span", { class: "muted", text: example.sample }),
   ])));
 }
-
-renderExamples("selector-examples", SELECTOR_EXAMPLES, addSelector);
-renderExamples("pattern-examples", IGNORE_EXAMPLES, addIgnorePattern);
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -430,7 +521,7 @@ async function exportSites() {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
-  return `사이트 ${data.sites.length}개를 파일로 내보냈습니다. 브라우저의 다운로드 폴더를 확인하세요.`;
+  return tn("exported", data.sites.length);
 }
 
 // 내보낸 JSON 파일, 또는 한 줄에 주소 하나씩 적은 텍스트 파일을 받는다.
@@ -441,10 +532,10 @@ function parseImportFile(text) {
     try {
       data = JSON.parse(trimmed);
     } catch (error) {
-      throw new Error("파일의 JSON 형식이 올바르지 않습니다.");
+      throw new Error(t("import_bad_json"));
     }
     const sites = Array.isArray(data) ? data : data.sites;
-    if (!Array.isArray(sites)) throw new Error("사이트 목록이 들어 있지 않은 파일입니다.");
+    if (!Array.isArray(sites)) throw new Error(t("import_no_list"));
     return sites;
   }
   return trimmed.split("\n")
@@ -455,15 +546,13 @@ function parseImportFile(text) {
 
 async function importSites(file) {
   const sites = parseImportFile(await file.text());
-  if (sites.length === 0) throw new Error("파일에 가져올 사이트가 없습니다.");
+  if (sites.length === 0) throw new Error(t("import_empty"));
   const result = await api("POST", "/api/import", { sites });
-  const parts = [`사이트 ${result.added}개를 추가했습니다.`];
-  if (result.skipped) parts.push(`이미 있는 ${result.skipped}개는 건너뛰었습니다.`);
+  const parts = [tn("imported", result.added)];
+  if (result.skipped) parts.push(tn("import_skipped", result.skipped));
   if (result.errors.length) {
     const first = result.errors[0];
-    parts.push(
-      `${result.errors.length}개는 넣지 못했습니다 (${first.position}번째 항목: ${first.error})`,
-    );
+    parts.push(tn("import_failed", result.errors.length, { position: first.position, error: first.error }));
     if (result.added === 0) throw new Error(parts.slice(1).join(" "));
   }
   return parts.join(" ");
@@ -478,16 +567,13 @@ $("import-file").addEventListener("change", (event) => {
 });
 $("delete-all").addEventListener("click", async () => {
   closeManageMenu();
-  const count = state.sites.length;
   const confirmed = await confirmDelete(
-    `사이트 ${count}개를 모두 삭제할까요?`,
-    "등록한 사이트와 저장된 비교 기준이 모두 지워지며 되돌릴 수 없습니다. "
-      + "나중에 다시 쓰려면 먼저 '내보내기'로 목록을 저장해 두세요.",
+    tn("delete_all_title", state.sites.length), t("delete_all_text"),
   );
   if (!confirmed) return;
   act(async () => {
     const result = await api("POST", "/api/sites/delete", { all: true });
-    return `사이트 ${result.deleted}개를 삭제했습니다.`;
+    return tn("deleted", result.deleted);
   });
 });
 document.addEventListener("click", (event) => {
@@ -503,23 +589,24 @@ $("selection-clear").addEventListener("click", () => { selected.clear(); render(
 $("selection-delete").addEventListener("click", async () => {
   const ids = [...selected];
   const confirmed = await confirmDelete(
-    `선택한 사이트 ${ids.length}개를 삭제할까요?`,
-    "선택한 사이트와 저장된 비교 기준이 지워지며 되돌릴 수 없습니다.",
+    tn("delete_selected_title", ids.length), t("delete_selected_text"),
   );
   if (!confirmed) return;
   act(async () => {
     const result = await api("POST", "/api/sites/delete", { site_ids: ids });
-    return `사이트 ${result.deleted}개를 삭제했습니다.`;
+    return tn("deleted", result.deleted);
   });
 });
 
 const autoDialog = $("auto-dialog");
 const autoForm = $("auto-form");
 
-$("auto-options").replaceChildren(...AUTO_PRESETS.map((seconds) => el("label", { class: "option" }, [
-  el("input", { type: "radio", name: "interval", value: String(seconds) }),
-  seconds ? formatInterval(seconds) : "끔",
-])));
+function renderAutoOptions() {
+  $("auto-options").replaceChildren(...AUTO_PRESETS.map((seconds) => el("label", { class: "option" }, [
+    el("input", { type: "radio", name: "interval", value: String(seconds) }),
+    formatInterval(seconds),
+  ])));
+}
 
 function chosenAutoInterval() {
   const choice = new FormData(autoForm).get("interval");
@@ -558,7 +645,7 @@ autoForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const seconds = chosenAutoInterval();
   try {
-    if (!Number.isInteger(seconds) || seconds < 0) throw new Error("간격은 1 이상의 정수로 입력하세요.");
+    if (!Number.isInteger(seconds) || seconds < 0) throw new Error(t("auto_invalid"));
     await api("POST", "/api/auto", { interval_seconds: seconds });
   } catch (error) {
     $("auto-error").textContent = error.message;
@@ -579,6 +666,12 @@ $("sort").addEventListener("change", (event) => {
   saveSortKey();
   render();
 });
+$("lang").addEventListener("change", (event) => {
+  setLanguage(event.target.value);
+  saveLanguage();
+  showNotice("");
+  refresh();  // 점검 실패 사유처럼 서버가 만든 문구도 새 언어로 다시 받는다.
+});
 $("dialog-cancel").addEventListener("click", () => dialog.close());
 $("add-site").addEventListener("click", () => openDialog(null));
 $("check-all").addEventListener("click", () => act(() => api("POST", "/api/check")));
@@ -590,22 +683,27 @@ $("quit").addEventListener("click", async () => {
   } catch (error) {
     // 서버가 응답 도중 내려가도 종료된 것으로 본다.
   }
-  $("overlay-text").textContent = "ChojemaWebDelta를 종료했습니다. 이 탭은 닫아도 됩니다.";
+  $("overlay-text").textContent = t("quit_done");
   $("overlay").hidden = false;
 });
 
 function tickClock() {
   const now = new Date();
-  const date = now.toLocaleDateString("ko-KR", {
+  const date = now.toLocaleDateString(locale, {
     year: "numeric", month: "long", day: "numeric", weekday: "long",
   });
-  const time = now.toLocaleTimeString("ko-KR", {
+  const time = now.toLocaleTimeString(locale, {
     hour: "2-digit", minute: "2-digit", second: "2-digit",
   });
   $("clock").textContent = `${date} ${time}`;
   $("year").textContent = now.getFullYear();
 }
 
-tickClock();
-setInterval(tickClock, 1000);
-refresh();
+async function start() {
+  messages = await (await fetch("/messages.json")).json();
+  setLanguage(detectLanguage());
+  setInterval(tickClock, 1000);
+  refresh();
+}
+
+start();

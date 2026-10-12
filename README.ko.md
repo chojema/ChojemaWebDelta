@@ -1,0 +1,242 @@
+# ChojemaWebDelta
+
+[English](README.md) | **한국어**
+
+미리 등록해 둔 웹페이지를 방문해 **이전과 달라진 점이 있는지** 확인하는 로컬 앱입니다.
+실행하면 브라우저에 화면이 열리고, **변경 확인**을 누르면 등록된 사이트를 뒤에서 차례로 방문해
+사이트별로 변경 여부와 바뀐 내용을 보여 줍니다. 사이트 이름을 누르면 해당 페이지가 새 탭으로 열립니다.
+
+외부 서비스나 AI를 쓰지 않고, 내 PC 안에서 규칙 기반으로만 동작합니다.
+
+## 다운로드
+
+현재 배포 버전은 [v0.1.0](https://github.com/chojema/ChojemaWebDelta/releases/tag/v0.1.0)입니다. 아래 실행 파일에는 Python이 포함되어 있습니다.
+
+| 운영체제 | 지원 대상 | 다운로드 |
+|---|---|---|
+| Windows | 64비트 x64 | [Windows ZIP](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.1.0/ChojemaWebDelta-0.1.0-windows-x64.zip) |
+| macOS | Apple Silicon(M1 이상), arm64 | [Mac 앱 ZIP](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.1.0/ChojemaWebDelta-0.1.0-macos-arm64.zip) |
+
+[SHA256 체크섬](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.1.0/SHA256SUMS.txt)으로 파일의 무결성을 확인할 수 있습니다.
+두 ZIP에는 프로그램과 함께 `LICENSE.txt`, `THIRD_PARTY_NOTICES.txt`가 들어 있습니다.
+Intel Mac과 Linux에서는 아래의 **소스로 실행** 방법을 사용하세요. 처음 실행할 때 표시될 수 있는 보안 안내는 운영체제별 실행 설명을 참고하세요.
+
+v0.1.0 실행 파일의 화면은 한국어만 지원합니다. 한국어·영어 화면은 소스로 실행할 때 쓸 수 있으며, 다음 배포 버전부터 실행 파일에 포함됩니다.
+
+## 실행
+
+### Windows: 실행 파일 내려받기
+
+[릴리스 페이지](https://github.com/chojema/ChojemaWebDelta/releases/latest)에서
+`ChojemaWebDelta-<버전>-windows-x64.zip`을 내려받아 압축을 풀고, 안의 실행 파일을 더블클릭합니다. Python을 설치할 필요가 없습니다.
+단독 `.exe`도 같은 릴리스에서 제공하며, 이 경우 릴리스에 함께 제공하는 `LICENSE.txt`, `THIRD_PARTY_NOTICES.txt`가 라이선스 고지입니다.
+
+- 서명되지 않은 프로그램이라 처음 실행할 때 "Windows의 PC 보호" 창이 뜰 수 있습니다. **추가 정보 → 실행**을 누르면 실행됩니다.
+- 이런 방식으로 묶은 실행 파일은 일부 백신이 악성으로 잘못 판정하는 경우가 있습니다. 마음에 걸리면 아래의 소스로 실행하는 방법을 쓰세요.
+- 내려받은 파일이 온전한지는 릴리스에 함께 올린 `SHA256SUMS.txt`의 값과 `certutil -hashfile <파일 이름> SHA256`의 결과를 비교해 확인할 수 있습니다.
+- 별도의 창 없이 실행되고 브라우저에 화면이 열립니다. 끝낼 때는 화면의 **종료** 버튼을 누릅니다.
+
+### macOS: 앱 내려받기 (Apple Silicon)
+
+[릴리스 페이지](https://github.com/chojema/ChojemaWebDelta/releases/latest)에서
+`ChojemaWebDelta-<버전>-macos-arm64.zip`을 내려받습니다. **Apple Silicon(M1 이상) Mac용**이며 Intel Mac용 실행 파일은 포함하지 않습니다. Python을 설치할 필요가 없습니다.
+
+1. ZIP의 압축을 풀고 `ChojemaWebDelta.app`을 **응용 프로그램** 폴더로 옮깁니다.
+2. 앱을 더블클릭하면 브라우저에 화면이 열립니다. 끝낼 때는 화면의 **종료** 버튼을 누릅니다.
+
+- 앱은 임시 서명(ad hoc)만 적용되어 있으며, Apple Developer ID 서명과 공증은 받지 않았습니다. 처음 실행할 때 macOS가 실행을 차단할 수 있습니다. 출처를 신뢰하는 경우에만 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**로 실행을 허용하세요. 조직에서 관리하는 Mac에서는 이 옵션을 사용할 수 없을 수 있습니다. [Apple의 실행 안내](https://support.apple.com/ko-kr/102445)를 참고하세요.
+- Intel Mac에서는 아래의 소스로 실행하는 방법을 사용하세요.
+- 파일의 무결성은 `shasum -a 256 <ZIP 파일 이름>`의 결과를 릴리스의 `SHA256SUMS.txt`와 비교해 확인할 수 있습니다.
+
+### 소스로 실행 (Windows, macOS, Linux)
+
+Python 3.10 이상이 필요합니다. 이 저장소를 내려받은 뒤 아래 파일을 실행합니다.
+처음 실행할 때 운영체제별 전용 환경을 만들고 필요한 패키지를 설치합니다.
+Windows는 `.venv`, macOS는 `.venv-macos`, Linux는 `.venv-linux`를 사용하므로 같은 프로젝트 폴더에서 함께 관리할 수 있습니다.
+
+| 운영체제 | 방법 |
+|---|---|
+| Windows | `run.bat` 더블클릭 |
+| macOS | `run.command` 더블클릭 (또는 터미널에서 `./run.sh`) |
+| Linux | 터미널에서 `./run.sh` |
+
+macOS와 Linux에서 실행 권한이 없다고 나오면 한 번만 `chmod +x run.sh run.command`를 실행하세요.
+
+끝낼 때는 화면의 **종료** 버튼을 누르거나 실행 창을 닫습니다.
+
+어느 방법이든, 이미 실행 중일 때 다시 실행하면 새로 띄우지 않고 기존 화면을 엽니다.
+
+## 사용법
+
+1. **사이트 추가**로 지켜볼 페이지 주소를 등록합니다.
+2. **변경 확인**을 누릅니다. 처음 점검한 사이트는 그때의 내용이 비교 기준으로 저장됩니다.
+3. 다음부터는 기준과 달라진 사이트가 **변경됨**으로 표시됩니다. **변경 내용 보기**로 추가·삭제된 줄을 볼 수 있습니다.
+4. 내용을 확인했으면 **확인함**을 누릅니다. 현재 상태가 새 기준이 됩니다.
+   확인하기 전에는 다시 점검해도 변경 표시가 사라지지 않습니다.
+
+목록은 오른쪽 위 **정렬**에서 상태순(변경된 사이트 먼저), 최근 추가순, 오래된 추가순, 이름순으로 바꿀 수 있습니다.
+
+### 화면 언어
+
+화면은 한국어와 영어를 지원합니다. 처음에는 브라우저의 언어 설정을 따르며, 화면 아래쪽의 언어 선택에서 바꿀 수 있습니다. 고른 언어는 그 브라우저에 기억됩니다.
+
+실행 창(콘솔)의 안내 문구는 운영체제의 언어를 따릅니다. 환경 변수 `CHOJEMA_WEBDELTA_LANG`을 `ko` 또는 `en`으로 정하면 그 언어로 고정됩니다.
+
+### 자동 확인
+
+상단의 **자동 확인 켜기** 버튼에서 주기를 정하면, 앱이 켜져 있는 동안 그 간격마다 변경 확인을 자동으로 실행합니다.
+
+- 기본 목록: 끔, 1분, 5분, 10분, 30분, 1시간, 2시간, 1일, 1주일. **직접 입력**으로 분·시간·일 단위의 다른 간격도 정할 수 있습니다(1분 이상 30일 이하).
+- 주기를 정한 시점부터 한 주기가 지난 뒤에 첫 확인을 합니다. 정한 주기는 저장되어 다음 실행 때도 적용됩니다.
+- 앱을 끄면 자동 확인도 멈춥니다. PC가 절전에서 깨어났을 때 예정 시각이 지나 있으면 곧바로 한 번 확인합니다.
+- **간격이 짧으면 이 PC와 네트워크에 부하가 생길 수 있고, 대상 사이트에도 요청이 자주 가서 접속이 차단될 수 있습니다.** 사이트가 많을수록 넉넉한 간격을 권합니다.
+
+### 목록 관리
+
+오른쪽 위 **목록 관리**에서 사이트 목록을 통째로 다룹니다.
+
+- **내보내기**: 등록한 사이트의 이름, 주소, 지켜볼 영역, 무시할 패턴을 JSON 파일로 저장합니다. 저장된 비교 기준(스냅샷)은 담지 않습니다.
+- **가져오기**: 내보낸 파일을 읽어 사이트를 추가합니다. 주소·영역·패턴이 같은 사이트가 이미 있으면 건너뜁니다. 한 줄에 주소 하나씩 적은 텍스트 파일도 받습니다.
+- **전체 삭제**: 등록한 사이트와 비교 기준을 모두 지웁니다. 되돌릴 수 없으니 먼저 내보내 두세요.
+
+일부만 지우려면 카드 왼쪽의 체크 상자로 고른 뒤 **선택 삭제**를 누릅니다.
+
+가져온 사이트는 다음 점검에서 비교 기준을 새로 잡습니다. 다른 PC로 옮길 때도 내보내기와 가져오기를 쓰면 됩니다.
+
+### 변경이 없는데 매번 "변경됨"으로 나올 때
+
+조회수, 날짜, 광고처럼 방문할 때마다 달라지는 부분이 비교에 들어간 경우입니다. 사이트 **편집**에서 범위를 좁히세요.
+
+- **지켜볼 영역**: CSS 선택자를 적으면 그 영역만 비교합니다. 예: `#content`, `.board-list`
+- **무시할 패턴**: 정규식을 한 줄에 하나씩 적으면 일치하는 글자를 지우고 비교합니다. 예: `조회수 \d+`
+
+영역이나 패턴을 바꾸면 비교 기준이 초기화되어, 다음 점검에서 다시 기준을 잡습니다.
+
+### 지켜볼 영역 예시
+
+페이지 소스에서 지켜볼 요소의 특징을 골라 적습니다. 편집 창의 **영역 예시 보기**에서 눌러서 추가할 수도 있습니다.
+
+```
+#content                      id가 content인 것              <div id="content">
+.board-list                   class에 board-list가 있는 것    <ul class="board-list">
+a.Link--primary               태그와 class를 함께             <a class="Link--primary Link">
+a[href^="/releases/tag/"]     주소가 이 글자로 시작하는 링크    <a href="/releases/tag/v1.0">
+#content .title               #content 안에 있는 .title
+#notice, #schedule            두 영역을 함께
+```
+
+- 빈칸 없이 붙여 쓰면 "모두 만족", 빈칸은 "~ 안의", 쉼표는 "또는"입니다.
+- 비교되는 것은 고른 요소 안의 글자입니다. `href`, `class` 같은 속성값은 요소를 찾는 데만 쓰입니다.
+
+### 무시할 패턴 예시
+
+패턴과 일치한 글자만 지운 뒤 비교합니다. 편집 창의 **패턴 예시 보기**에서 눌러서 추가할 수도 있습니다. 편집 창의 예시는 화면 언어를 따르며, 아래는 한국어 화면의 예시입니다.
+
+```
+조회수?\s*:?\s*[\d,]+                  조회수            조회 1,234 / 조회수: 56
+\d{4}[-./]\s?\d{1,2}[-./]\s?\d{1,2}\.?   날짜              2026-10-12 / 2026. 10. 12.
+\d{1,2}:\d{2}(:\d{2})?                 시각              09:05 / 09:05:30
+\d+\s*(초|분|시간|일)\s*전               지난 시간          3분 전 / 2 시간 전
+(댓글|추천|좋아요)\s*\(?[\d,]+\)?        댓글·추천 수       댓글 (12) / 추천 3
+^.*광고.*$                             '광고'가 든 줄 전체
+^오늘 방문자.*$                         '오늘 방문자'로 시작하는 줄 전체
+(?i)copyright.*$                       대소문자 구분 없이 copyright부터 줄 끝까지
+```
+
+- 줄에서 일치한 부분만 지워지고 나머지 글자는 남습니다. 줄을 통째로 빼려면 `^.*낱말.*$` 처럼 씁니다.
+- `\d`는 숫자 한 글자, `\s`는 공백, `+`는 한 번 이상, `*`는 0번 이상, `?`는 있어도 없어도 됨을 뜻합니다.
+- `. ( ) [ ] ? + * |` 를 글자 그대로 찾으려면 앞에 `\`를 붙입니다. 예: `\(광고\)`
+- 페이지의 연속된 공백은 한 칸으로 줄인 뒤에 패턴을 적용합니다.
+- 문법은 Python 정규식을 따릅니다. 패턴이 넓을수록 실제 변경까지 가릴 수 있으니, 지우려는 대상에 맞게 좁혀 쓰세요.
+
+### 한계
+
+- 페이지를 받아 온 HTML만 봅니다. 자바스크립트로 나중에 채워지는 내용과 로그인이 필요한 페이지는 아직 지원하지 않습니다.
+- 글자만 비교합니다. 이미지나 레이아웃 변경은 감지하지 않습니다.
+
+## 데이터 저장 위치
+
+사이트 목록과 스냅샷은 프로그램 폴더가 아닌 사용자 데이터 폴더에 저장됩니다. 화면 아래쪽에 실제 경로가 표시됩니다.
+
+| 운영체제 | 위치 |
+|---|---|
+| Windows | `%APPDATA%\ChojemaWebDelta` |
+| macOS | `~/Library/Application Support/ChojemaWebDelta` |
+| Linux | `~/.local/share/ChojemaWebDelta` |
+
+환경 변수 `CHOJEMA_WEBDELTA_DATA`로 다른 폴더를 지정할 수 있습니다.
+
+## 삭제
+
+제거 프로그램은 따로 없습니다. 이 앱은 레지스트리, 시작 메뉴, 시작 프로그램, 백그라운드 서비스에 아무것도 등록하지 않으므로, 아래 두 가지만 지우면 됩니다.
+
+1. 화면의 **종료** 버튼으로 앱을 끝냅니다.
+2. 프로그램과 데이터 폴더를 삭제합니다.
+
+| | Windows | macOS |
+|---|---|---|
+| 프로그램 | 내려받은 `ChojemaWebDelta-…-windows-x64.exe` | `ChojemaWebDelta.app` |
+| 데이터 폴더 | `%APPDATA%\ChojemaWebDelta` | `~/Library/Application Support/ChojemaWebDelta` |
+| 데이터 폴더 여는 법 | 탐색기 주소창에 `%APPDATA%\ChojemaWebDelta` 입력 | Finder에서 **이동 → 폴더로 이동**(⇧⌘G)에 `~/Library/Application Support/ChojemaWebDelta` 입력 |
+
+Windows의 `AppData`와 macOS의 사용자 `Library` 폴더는 기본적으로 숨겨져 있으므로 위 방법으로 데이터 폴더를 여세요. macOS의 **응용 프로그램** 폴더는 숨겨져 있지 않으며, 그곳으로 옮긴 앱은 Finder에서 찾을 수 있습니다. Linux의 데이터 폴더는 `~/.local/share/ChojemaWebDelta`입니다.
+
+- **목록을 남겨 두려면** 지우기 전에 **목록 관리 → 내보내기**로 파일을 저장해 두세요.
+- **스크립트(`run.bat`, `run.sh`, `run.command`)로 써 왔다면** 프로그램 대신 내려받은 프로젝트 폴더를 통째로 지웁니다. 전용 Python 환경(`.venv`, `.venv-macos`, `.venv-linux`)도 그 안에 있습니다.
+- **`CHOJEMA_WEBDELTA_DATA`로 다른 폴더를 지정했다면** 데이터는 그 폴더에 있습니다.
+- **앱은 두고 처음 상태로 되돌리려면** 데이터 폴더만 지웁니다. 다음에 실행하면 빈 목록으로 시작합니다.
+
+그 밖에 남을 수 있는 것은 두 가지이며, 그대로 두어도 지장이 없습니다.
+
+- 브라우저에 기억된 목록 정렬과 화면 언어 선택. 브라우저 설정에서 `127.0.0.1`의 사이트 데이터를 지우면 없어집니다.
+- Windows에서 앱이 강제 종료된 경우, 임시 폴더(`%TEMP%`)에 남는 `_MEI`로 시작하는 폴더. 정상 종료하면 자동으로 지워지며, 남아 있으면 삭제해도 됩니다.
+
+## 개발
+
+```
+python -m pip install -r requirements.txt
+python -m chojema_webdelta            # 실행 (--port, --no-browser 옵션)
+python -m unittest discover -s tests -t .   # 테스트
+```
+
+| 파일 | 역할 |
+|---|---|
+| `chojema_webdelta/engine.py` | 페이지 가져오기, 영역 추출, 비교 |
+| `chojema_webdelta/store.py` | 사이트 목록과 스냅샷 저장 (SQLite) |
+| `chojema_webdelta/server.py` | 로컬 화면 서버, API, 백그라운드 점검 |
+| `chojema_webdelta/i18n.py` | 서버 오류와 콘솔 출력의 한국어·영어 문구 |
+| `chojema_webdelta/web/` | 화면 (HTML, CSS, JS) |
+| `chojema_webdelta/web/messages.json` | 화면의 한국어·영어 문구 |
+
+### 실행 파일로 묶기
+
+Python이 없는 PC에서도 실행되는 파일을 만듭니다. 만드는 운영체제용 파일만 생깁니다.
+
+```
+python -m pip install pyinstaller
+python packaging/build.py
+```
+
+Windows에서는 `dist/ChojemaWebDelta.exe`, macOS에서는 `dist/ChojemaWebDelta.app`이 만들어집니다.
+빌드할 때 설치된 의존성의 라이선스와 Python 런타임 고지를 모아 프로그램에 포함합니다. Windows에서는 실행 파일과 고지를 함께 담은 `dist/ChojemaWebDelta-windows-<아키텍처>.zip`도 만듭니다.
+
+macOS에서는 다음 명령으로 전용 환경 생성, 의존성 설치, 앱 빌드를 한 번에 실행할 수 있습니다.
+
+```sh
+bash packaging/build_macos.sh
+```
+
+Mac용 환경은 `.venv-macos`, 빌드 중간 파일은 `build/macos`에 보관합니다.
+기존 Windows용 `.venv`와 `dist/ChojemaWebDelta.exe`는 유지됩니다.
+빌드한 `dist/ChojemaWebDelta.app`을 더블클릭하면 브라우저에 화면이 열리며, 실행할 Mac에 Python을 따로 설치할 필요가 없습니다.
+이 스크립트는 빌드한 Mac의 CPU 아키텍처용 앱을 만듭니다.
+`dist/ChojemaWebDelta-macos-<아키텍처>.zip`도 함께 생성됩니다. 동기화 폴더에서 앱의 Finder 메타데이터가 다시 붙어 서명 검증이 실패하면, ZIP을 동기화하지 않는 폴더에 풀어 실행하세요.
+Mac 앱은 로컬 실행용 임시 서명(ad hoc)을 사용하며, Apple의 배포용 서명과 공증은 포함하지 않습니다.
+
+## 라이선스
+
+ChojemaWebDelta의 원본 코드(v0.1.0 포함)는 [MIT 라이선스](LICENSE)로 제공합니다.
+사용·수정·상업적 재배포가 가능하며, 저작권과 라이선스 고지를 유지해야 합니다.
+
+포함된 Python 런타임과 외부 라이브러리는 각각의 라이선스를 따릅니다. 전체 고지와 원본 소스 배포 위치는 [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt)에 있습니다.
+프로그램을 다시 배포할 때는 `LICENSE.txt`와 `THIRD_PARTY_NOTICES.txt`를 함께 제공하세요.

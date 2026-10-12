@@ -1,6 +1,7 @@
 """엔진·저장소 단위 테스트와, 임시 웹페이지를 상대로 한 전체 흐름 테스트."""
 
 import json
+import re
 import tempfile
 import threading
 import time
@@ -10,7 +11,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from chojema_webdelta import engine, store as store_module
+from chojema_webdelta import engine, i18n, paths, store as store_module
 from chojema_webdelta.server import AppServer, AutoChecker
 
 PAGE = """<html><head><meta charset="{charset}"><style>.x{{}}</style></head><body>
@@ -98,20 +99,71 @@ class IgnorePatternExamplesTest(unittest.TestCase):
         (r"(?i)copyright.*$", "회사명 COPYRIGHT © 2026 All rights reserved", "회사명"),
         (r"\(광고\)", "(광고) 새 소식", "새 소식"),
     ]
+    # 영어 화면과 README.md에 싣는 예시
+    EXAMPLES_EN = [
+        (r"(?i)views?:?\s*[\d,]+|[\d,.]+k?\s*views?", "Notice Views: 1,234", "Notice"),
+        (r"(?i)views?:?\s*[\d,]+|[\d,.]+k?\s*views?", "Notice 1.2K views", "Notice"),
+        (r"\d{4}[-./]\d{1,2}[-./]\d{1,2}", "Posted 2026-10-12", "Posted"),
+        (r"\d{4}[-./]\d{1,2}[-./]\d{1,2}", "Posted 2026/10/12", "Posted"),
+        (
+            r"(?i)(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}",
+            "Posted Oct 12, 2026", "Posted",
+        ),
+        (
+            r"(?i)(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}",
+            "Posted October 12 2026", "Posted",
+        ),
+        (r"(?i)\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?", "Updated 09:05", "Updated"),
+        (r"(?i)\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?", "Updated 9:05:30 PM", "Updated"),
+        (r"(?i)\d+\s*(seconds?|minutes?|mins?|hours?|hrs?|days?)\s+ago", "Alice 3 minutes ago", "Alice"),
+        (r"(?i)\d+\s*(seconds?|minutes?|mins?|hours?|hrs?|days?)\s+ago", "Alice 2 hrs ago", "Alice"),
+        (
+            r"(?i)[\d,]+\s*(comments?|likes?|replies)|(comments?|likes?|replies)\s*\(?[\d,]+\)?",
+            "Title 12 comments", "Title",
+        ),
+        (
+            r"(?i)[\d,]+\s*(comments?|likes?|replies)|(comments?|likes?|replies)\s*\(?[\d,]+\)?",
+            "Title Likes (3)", "Title",
+        ),
+        (r"^.*Sponsored.*$", "This week's Sponsored picks", ""),
+        (r"^Visitors today.*$", "Visitors today: 1,024", ""),
+        (r"(?i)copyright.*$", "Acme COPYRIGHT © 2026 All rights reserved", "Acme"),
+        (r"\(Ad\)", "(Ad) New arrivals", "New arrivals"),
+    ]
 
     def test_examples_remove_what_they_describe(self):
-        for pattern, line, expected in self.EXAMPLES:
+        for pattern, line, expected in self.EXAMPLES + self.EXAMPLES_EN:
             with self.subTest(pattern=pattern, line=line):
                 html = f"<body><p>머리말</p><p>{line}</p></body>"
                 kept = engine.extract_text(html, "", pattern).splitlines()[1:]
                 self.assertEqual(kept, [expected] if expected else [])
 
     def test_patterns_do_not_touch_other_lines(self):
-        patterns = "\n".join(dict.fromkeys(pattern for pattern, _, _ in self.EXAMPLES))
-        html = "<body><p>중간고사 일정 변경 안내</p><p>도서관 휴관 안내</p></body>"
-        self.assertEqual(
-            engine.extract_text(html, "", patterns), "중간고사 일정 변경 안내\n도서관 휴관 안내"
-        )
+        cases = [
+            (self.EXAMPLES, ["중간고사 일정 변경 안내", "도서관 휴관 안내"]),
+            (self.EXAMPLES_EN, ["Midterm schedule change notice", "The library is closed on Friday"]),
+        ]
+        for examples, lines in cases:
+            with self.subTest(first_line=lines[0]):
+                patterns = "\n".join(dict.fromkeys(pattern for pattern, _, _ in examples))
+                html = "<body>" + "".join(f"<p>{line}</p>" for line in lines) + "</body>"
+                self.assertEqual(engine.extract_text(html, "", patterns), "\n".join(lines))
+
+    def test_examples_are_the_ones_shown_on_screen(self):
+        web = paths.web_dir()
+        shown = (web / "app.js").read_text("utf-8") + (web / "messages.json").read_text("utf-8")
+        for pattern, _, _ in self.EXAMPLES + self.EXAMPLES_EN:
+            with self.subTest(pattern=pattern):
+                # 화면 파일 안에서는 역슬래시가 한 번 더 이스케이프되어 있다.
+                self.assertIn(pattern.replace("\\", "\\\\"), shown)
+
+    def test_examples_are_the_ones_in_the_readme(self):
+        root = Path(__file__).resolve().parent.parent
+        for filename, examples in (("README.ko.md", self.EXAMPLES), ("README.md", self.EXAMPLES_EN)):
+            readme = (root / filename).read_text("utf-8")
+            for pattern, _, _ in examples:
+                with self.subTest(readme=filename, pattern=pattern):
+                    self.assertIn(pattern, readme)
 
 
 class DiffLinesTest(unittest.TestCase):
@@ -131,6 +183,87 @@ class DiffLinesTest(unittest.TestCase):
 
     def test_identical_text_has_no_diff(self):
         self.assertEqual(engine.diff_lines("가", "가"), [])
+
+
+class MessagesTest(unittest.TestCase):
+    """서버와 화면의 문구 목록이 한국어와 영어를 빠짐없이 갖추었는지 확인한다."""
+
+    PLACEHOLDER = re.compile(r"\{(\w+)\}")
+
+    def setUp(self):
+        web = paths.web_dir()
+        self.screen = json.loads((web / "messages.json").read_text("utf-8"))
+        self.html = (web / "index.html").read_text("utf-8")
+        self.script = (web / "app.js").read_text("utf-8")
+
+    def placeholders(self, template):
+        # \d{4} 같은 정규식 예시의 {4}는 값이 들어갈 자리가 아니다.
+        return {name for name in self.PLACEHOLDER.findall(template) if not name.isdigit()}
+
+    def test_server_messages_exist_in_both_languages(self):
+        for code, entry in i18n.MESSAGES.items():
+            with self.subTest(code=code):
+                self.assertEqual(set(entry), set(i18n.LANGUAGES))
+                self.assertEqual(self.placeholders(entry["ko"]), self.placeholders(entry["en"]))
+
+    def test_screen_messages_exist_in_both_languages(self):
+        self.assertEqual(set(self.screen), set(i18n.LANGUAGES))
+
+        # 개수에 따라 달라지는 문구는 언어마다 갖춘 형태(_one, _other)가 다를 수 있다.
+        def base(key):
+            return re.sub(r"_(one|other)$", "", key)
+
+        ko, en = self.screen["ko"], self.screen["en"]
+        self.assertEqual({base(key) for key in ko}, {base(key) for key in en})
+        for key in en:
+            with self.subTest(key=key):
+                korean = ko[key] if key in ko else ko[f"{base(key)}_other"]
+                if key.endswith("_one"):  # 하나일 때는 개수를 적지 않는 문장도 있다.
+                    self.assertLessEqual(self.placeholders(en[key]), self.placeholders(korean))
+                else:
+                    self.assertEqual(self.placeholders(en[key]), self.placeholders(korean))
+        for table in (ko, en):
+            for key in table:
+                if key.endswith("_one"):
+                    self.assertIn(f"{base(key)}_other", table)
+
+    def test_keys_used_by_the_screen_are_defined(self):
+        used = set(re.findall(r'data-i18n(?:-html)?="([^"]+)"', self.html))
+        for spec in re.findall(r'data-i18n-attr="([^"]+)"', self.html):
+            used.update(pair.split(":")[1] for pair in spec.split(","))
+        used.update(re.findall(r'\bt\("([a-z0-9_]+)"', self.script))
+        counted = set(re.findall(r'\btn\("([a-z0-9_]+)"', self.script))
+        for lang, table in self.screen.items():
+            for key in used:
+                with self.subTest(lang=lang, key=key):
+                    self.assertIn(key, table)
+            for key in counted:
+                with self.subTest(lang=lang, key=key):
+                    self.assertIn(f"{key}_other", table)
+
+    def test_defined_keys_are_used_by_the_screen(self):
+        words = set(re.findall(r"[a-z0-9_]+", self.html + self.script))
+        for key in self.screen["en"]:
+            with self.subTest(key=key):
+                self.assertIn(re.sub(r"_(one|other)$", "", key), words)
+
+    def test_language_is_picked_from_the_request_header(self):
+        cases = [
+            ("ko", "ko"), ("ko-KR,ko;q=0.9,en;q=0.8", "ko"), ("en-US,en;q=0.9", "en"),
+            ("fr-FR,en;q=0.8,ko;q=0.5", "en"), ("fr", "en"), ("", "en"), (None, "en"),
+        ]
+        for header, expected in cases:
+            with self.subTest(header=header):
+                self.assertEqual(i18n.pick_language(header), expected)
+
+    def test_stored_error_can_be_shown_in_either_language(self):
+        stored = engine.CheckError("http_error", status=503).dump()
+        self.assertEqual(i18n.render_stored(stored, "ko"), "서버가 오류를 돌려줌 (HTTP 503)")
+        self.assertEqual(i18n.render_stored(stored, "en"), "The server returned an error (HTTP 503)")
+        # 문구 코드를 쓰기 전에 저장된 글자는 그대로 보여 준다.
+        self.assertEqual(i18n.render_stored("접속 실패", "en"), "접속 실패")
+        self.assertEqual(i18n.render_stored("{not json", "en"), "{not json")
+        self.assertIsNone(i18n.render_stored(None, "en"))
 
 
 class StoreTest(unittest.TestCase):
@@ -321,6 +454,30 @@ class FullFlowTest(unittest.TestCase):
         site = self.check_and_wait()[0]
         self.assertEqual(site["status"], "error")
         self.assertIn("503", site["last_error"])
+        # 같은 실패 사유를 요청한 언어로 보여 준다.
+        for lang, expected in (("ko", "서버가 오류를 돌려줌 (HTTP 503)"), ("en", "The server returned an error (HTTP 503)")):
+            state = self.call("GET", "/api/state", headers={"Accept-Language": lang})
+            self.assertEqual(state["sites"][0]["last_error"], expected)
+
+    def test_errors_follow_the_requested_language(self):
+        cases = [
+            ("ko", "주소는 http:// 또는 https:// 로 시작해야 합니다."),
+            ("en-US,en;q=0.9", "The URL must start with http:// or https://."),
+            (None, "The URL must start with http:// or https://."),
+        ]
+        for header, expected in cases:
+            headers = {"Accept-Language": header} if header else {}
+            with self.subTest(header=header), self.assertRaises(urllib.error.HTTPError) as caught:
+                self.call("POST", "/api/sites", {"url": "example.com"}, headers)
+            self.assertEqual(json.load(caught.exception)["error"], expected)
+
+        result = self.call(
+            "POST", "/api/import", {"sites": [{"url": "nope"}, "text"]}, {"Accept-Language": "ko"}
+        )
+        self.assertEqual(
+            [error["error"] for error in result["errors"]],
+            ["주소는 http:// 또는 https:// 로 시작해야 합니다.", "항목의 형식이 올바르지 않습니다."],
+        )
 
     def test_export_delete_and_import_round_trip(self):
         for number in (1, 2, 3):
@@ -391,6 +548,8 @@ class FullFlowTest(unittest.TestCase):
     def test_serves_the_screen(self):
         with urllib.request.urlopen(self.app.url, timeout=5) as response:
             self.assertIn("ChojemaWebDelta", response.read().decode("utf-8"))
+        with urllib.request.urlopen(self.app.url + "messages.json", timeout=5) as response:
+            self.assertEqual(set(json.load(response)), {"ko", "en"})
 
 
 if __name__ == "__main__":

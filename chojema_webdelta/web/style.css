@@ -77,7 +77,7 @@ h1 { margin: 0; font-size: 1.1rem; letter-spacing: -0.01em; }
 .counts { display: flex; flex-wrap: wrap; gap: 6px; margin-right: auto; }
 .actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .sort { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-.sort select {
+.sort select, .lang {
   padding: 4px 6px;
   border: 1px solid var(--border);
   border-radius: 7px;
@@ -255,6 +255,7 @@ main { flex: 1; width: 100%; max-width: 1100px; margin: 0 auto; padding: 12px 20
 }
 .credit { flex: none; white-space: nowrap; }
 .data-dir { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 1em; }
+.lang { flex: none; padding: 2px 4px; }
 .links { display: flex; flex: none; gap: 2px; }
 .links a { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; color: var(--muted); }
 .links a:hover { background: var(--idle-bg); color: var(--accent); }
@@ -315,6 +316,8 @@ dialog label.option {
 dialog label.option:has(input:checked) { border-color: var(--accent); background: var(--new-bg); }
 dialog .option input { display: inline; width: auto; margin: 0; padding: 0; accent-color: var(--accent); }
 .custom-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 14px; }
+/* "마다"/"every"처럼 언어에 따라 앞이나 뒤에만 오는 말은 빈 쪽을 감춘다. */
+.custom-row > span:empty { display: none; }
 dialog .custom-row input[type="number"] { width: 80px; margin: 0; padding: 5px 8px; }
 .custom-row select {
   padding: 5px 6px;

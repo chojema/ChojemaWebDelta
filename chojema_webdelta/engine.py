@@ -7,6 +7,8 @@ from dataclasses import dataclass
 import httpx
 from bs4 import BeautifulSoup
 
+from . import i18n
+
 TIMEOUT_SECONDS = 20
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -17,8 +19,8 @@ NOISE_TAGS = ("script", "style", "noscript", "template", "svg", "iframe")
 DIFF_CONTEXT_LINES = 2
 
 
-class CheckError(Exception):
-    """사용자에게 그대로 보여 줄 수 있는 점검 실패 사유."""
+class CheckError(i18n.LocalizedError):
+    """사용자에게 보여 줄 수 있는 점검 실패 사유."""
 
 
 @dataclass
@@ -37,7 +39,7 @@ def compile_ignore_patterns(raw: str) -> list[re.Pattern]:
         try:
             patterns.append(re.compile(line))
         except re.error as exc:
-            raise CheckError(f"무시 패턴이 올바른 정규식이 아닙니다: {line} ({exc})") from exc
+            raise CheckError("bad_pattern", pattern=line, detail=str(exc)) from exc
     return patterns
 
 
@@ -50,13 +52,13 @@ def fetch(url: str) -> bytes:
             timeout=TIMEOUT_SECONDS,
         )
     except httpx.TimeoutException as exc:
-        raise CheckError(f"응답 시간 초과 ({TIMEOUT_SECONDS}초)") from exc
+        raise CheckError("timeout", seconds=TIMEOUT_SECONDS) from exc
     except httpx.ConnectError as exc:
-        raise CheckError("서버에 연결할 수 없습니다. 주소와 인터넷 연결을 확인하세요.") from exc
+        raise CheckError("connect_failed") from exc
     except httpx.HTTPError as exc:
-        raise CheckError(f"접속 실패 ({exc.__class__.__name__})") from exc
+        raise CheckError("fetch_failed", detail=exc.__class__.__name__) from exc
     if response.status_code >= 400:
-        raise CheckError(f"서버가 오류를 돌려줌 (HTTP {response.status_code})")
+        raise CheckError("http_error", status=response.status_code)
     return response.content
 
 
@@ -75,9 +77,9 @@ def extract_text(html: bytes | str, selector: str = "", ignore_patterns: str = "
         try:
             regions = soup.select(selector)
         except Exception as exc:  # soupsieve가 선택자 문법 오류에 던지는 예외가 여러 종류다
-            raise CheckError(f"CSS 선택자가 올바르지 않습니다: {selector}") from exc
+            raise CheckError("bad_selector", selector=selector) from exc
         if not regions:
-            raise CheckError(f"선택자와 일치하는 영역이 없습니다: {selector}")
+            raise CheckError("selector_no_match", selector=selector)
     else:
         regions = [soup.body or soup]
 

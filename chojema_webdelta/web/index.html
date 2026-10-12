@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,29 +14,29 @@
       <span id="version" class="muted"></span>
     </div>
     <div id="counts" class="counts" aria-live="polite"></div>
-    <label class="sort muted">정렬
+    <label class="sort muted"><span data-i18n="sort_label"></span>
       <select id="sort">
-        <option value="status">상태순</option>
-        <option value="newest">최근 추가순</option>
-        <option value="oldest">오래된 추가순</option>
-        <option value="name">이름순</option>
+        <option value="status" data-i18n="sort_status"></option>
+        <option value="newest" data-i18n="sort_newest"></option>
+        <option value="oldest" data-i18n="sort_oldest"></option>
+        <option value="name" data-i18n="sort_name"></option>
       </select>
     </label>
     <div class="actions">
-      <button id="ack-all" type="button" hidden>모두 확인함</button>
-      <button id="check-all" class="primary" type="button">변경 확인</button>
-      <button id="auto" type="button" title="정한 간격마다 자동으로 변경 확인">자동 확인 켜기</button>
-      <button id="add-site" type="button">사이트 추가</button>
+      <button id="ack-all" type="button" data-i18n="ack_all" hidden></button>
+      <button id="check-all" class="primary" type="button" data-i18n="check_all"></button>
+      <button id="auto" type="button" data-i18n="auto_turn_on" data-i18n-attr="title:auto_title"></button>
+      <button id="add-site" type="button" data-i18n="add_site"></button>
       <details id="manage" class="menu">
-        <summary>목록 관리</summary>
+        <summary data-i18n="manage"></summary>
         <div class="menu-items">
-          <button id="export" type="button">내보내기</button>
-          <button id="import" type="button">가져오기</button>
-          <button id="delete-all" class="danger-text" type="button">전체 삭제</button>
+          <button id="export" type="button" data-i18n="export"></button>
+          <button id="import" type="button" data-i18n="import"></button>
+          <button id="delete-all" class="danger-text" type="button" data-i18n="delete_all"></button>
         </div>
       </details>
       <input id="import-file" type="file" accept=".json,.txt,application/json,text/plain" hidden>
-      <button id="quit" class="quiet" type="button">종료</button>
+      <button id="quit" class="quiet" type="button" data-i18n="quit"></button>
     </div>
     <div id="progress" class="progress" hidden><div id="progress-fill" class="progress-fill"></div></div>
   </header>
@@ -44,37 +44,39 @@
   <main>
     <p id="notice" class="notice" hidden></p>
     <div id="selection" class="selection" hidden>
-      <label><input id="select-all" type="checkbox"> 전체 선택</label>
+      <label><input id="select-all" type="checkbox"> <span data-i18n="select_all"></span></label>
       <span id="selection-count"></span>
       <span class="spacer"></span>
-      <button id="selection-clear" class="small quiet" type="button">선택 해제</button>
-      <button id="selection-delete" class="small danger" type="button">선택 삭제</button>
+      <button id="selection-clear" class="small quiet" type="button" data-i18n="selection_clear"></button>
+      <button id="selection-delete" class="small danger" type="button" data-i18n="selection_delete"></button>
     </div>
     <ul id="sites" class="sites"></ul>
-    <p id="empty" class="empty" hidden>
-      등록된 사이트가 없습니다. <strong>사이트 추가</strong>로 지켜볼 페이지를 등록하세요.
-    </p>
+    <p id="empty" class="empty" data-i18n-html="empty_html" hidden></p>
     <p id="clock" class="clock muted" aria-hidden="true"></p>
     <p id="auto-status" class="clock muted" hidden></p>
   </main>
 
   <footer class="infobar">
     <span class="credit">Chulwoo Park, <span id="year"></span></span>
-    <span class="data-dir muted">데이터 저장 위치: <span id="data-dir"></span></span>
-    <nav class="links" aria-label="만든 사람의 사이트">
-      <a href="https://cantips.com" target="_blank" rel="noopener noreferrer" title="Blog" aria-label="Blog (새 창에서 열림)">
+    <span class="data-dir muted"><span data-i18n="data_dir_label"></span> <span id="data-dir"></span></span>
+    <select id="lang" class="lang" data-i18n-attr="aria-label:language">
+      <option value="ko" lang="ko">한국어</option>
+      <option value="en" lang="en">English</option>
+    </select>
+    <nav class="links" data-i18n-attr="aria-label:links_label">
+      <a href="https://cantips.com" target="_blank" rel="noopener noreferrer" title="Blog" data-i18n-attr="aria-label:link_new_window" data-i18n-name="Blog">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
       </a>
-      <a href="https://www.youtube.com/@cantips" target="_blank" rel="noopener noreferrer" title="YouTube" aria-label="YouTube (새 창에서 열림)">
+      <a href="https://www.youtube.com/@cantips" target="_blank" rel="noopener noreferrer" title="YouTube" data-i18n-attr="aria-label:link_new_window" data-i18n-name="YouTube">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42c-.86.23-1.54.91-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.54 1.77 1.77C5.75 19 12 19 12 19s6.25 0 7.81-.42c.86-.23 1.54-.91 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15V9l5.2 3-5.2 3z"/></svg>
       </a>
-      <a href="https://twitter.com/chojema" target="_blank" rel="noopener noreferrer" title="X" aria-label="X (새 창에서 열림)">
+      <a href="https://twitter.com/chojema" target="_blank" rel="noopener noreferrer" title="X" data-i18n-attr="aria-label:link_new_window" data-i18n-name="X">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L2.25 2.25h6.921l4.255 5.623 4.818-5.623zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
       </a>
-      <a href="https://www.instagram.com/chojema" target="_blank" rel="noopener noreferrer" title="Instagram" aria-label="Instagram (새 창에서 열림)">
+      <a href="https://www.instagram.com/chojema" target="_blank" rel="noopener noreferrer" title="Instagram" data-i18n-attr="aria-label:link_new_window" data-i18n-name="Instagram">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
       </a>
-      <a href="https://github.com/chojema" target="_blank" rel="noopener noreferrer" title="GitHub" aria-label="GitHub (새 창에서 열림)">
+      <a href="https://github.com/chojema" target="_blank" rel="noopener noreferrer" title="GitHub" data-i18n-attr="aria-label:link_new_window" data-i18n-name="GitHub">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
       </a>
     </nav>
@@ -82,70 +84,68 @@
 
   <dialog id="site-dialog">
     <form id="site-form" method="dialog">
-      <h2 id="dialog-title">사이트 추가</h2>
-      <label>주소
+      <h2 id="dialog-title"></h2>
+      <label><span data-i18n="field_url"></span>
         <input name="url" type="url" required placeholder="https://example.com/notice">
       </label>
-      <label>이름 <span class="muted">(비워 두면 주소의 도메인)</span>
+      <label><span data-i18n="field_name"></span> <span class="muted" data-i18n="field_name_hint"></span>
         <input name="name" type="text" maxlength="100">
       </label>
-      <label>지켜볼 영역 <span class="muted">(CSS 선택자, 비워 두면 페이지 전체)</span>
-        <input name="selector" type="text" placeholder="예: #content, .board-list">
+      <label><span data-i18n="field_selector"></span> <span class="muted" data-i18n="field_selector_hint"></span>
+        <input name="selector" type="text" data-i18n-attr="placeholder:selector_placeholder">
       </label>
       <details class="help">
-        <summary>영역 예시 보기</summary>
-        <p>페이지 소스에서 지켜볼 요소의 특징을 골라 적습니다. 예시를 누르면 위 칸에 추가됩니다.</p>
+        <summary data-i18n="selector_help_summary"></summary>
+        <p data-i18n="selector_help_lead"></p>
         <ul id="selector-examples" class="examples"></ul>
         <ul class="help-notes">
-          <li>빈칸 없이 붙여 쓰면 "모두 만족", 빈칸은 "~ 안의", 쉼표는 "또는"입니다.</li>
-          <li>비교되는 것은 고른 요소 안의 글자입니다. <code>href</code>, <code>class</code> 같은 속성값은 요소를 찾는 데만 쓰입니다.</li>
+          <li data-i18n="selector_note_combine"></li>
+          <li data-i18n-html="selector_note_text_html"></li>
         </ul>
       </details>
-      <label>무시할 패턴 <span class="muted">(정규식, 한 줄에 하나)</span>
-        <textarea name="ignore_patterns" rows="3" placeholder="예: 조회수 \d+"></textarea>
+      <label><span data-i18n="field_ignore"></span> <span class="muted" data-i18n="field_ignore_hint"></span>
+        <textarea name="ignore_patterns" rows="3" data-i18n-attr="placeholder:ignore_placeholder"></textarea>
       </label>
       <details class="help">
-        <summary>패턴 예시 보기</summary>
-        <p>패턴과 일치한 글자만 지운 뒤 비교합니다. 예시를 누르면 위 칸에 추가됩니다.</p>
+        <summary data-i18n="pattern_help_summary"></summary>
+        <p data-i18n="pattern_help_lead"></p>
         <ul id="pattern-examples" class="examples"></ul>
         <ul class="help-notes">
-          <li>줄에서 일치한 부분만 지워지고 나머지 글자는 남습니다. 줄을 통째로 빼려면 <code>^.*낱말.*$</code> 처럼 씁니다.</li>
-          <li><code>\d</code>는 숫자 한 글자, <code>\s</code>는 공백, <code>+</code>는 한 번 이상, <code>*</code>는 0번 이상, <code>?</code>는 있어도 없어도 됨을 뜻합니다.</li>
-          <li><code>. ( ) [ ] ? + * |</code> 를 글자 그대로 찾으려면 앞에 <code>\</code>를 붙입니다. 예: <code>\(광고\)</code></li>
-          <li>페이지의 연속된 공백은 한 칸으로 줄인 뒤에 패턴을 적용합니다.</li>
+          <li data-i18n-html="pattern_note_partial_html"></li>
+          <li data-i18n-html="pattern_note_syntax_html"></li>
+          <li data-i18n-html="pattern_note_escape_html"></li>
+          <li data-i18n="pattern_note_spaces"></li>
         </ul>
       </details>
       <p id="form-error" class="form-error" hidden></p>
       <div class="dialog-actions">
-        <button id="dialog-cancel" class="quiet" type="button">취소</button>
-        <button class="primary" type="submit">저장</button>
+        <button id="dialog-cancel" class="quiet" type="button" data-i18n="cancel"></button>
+        <button class="primary" type="submit" data-i18n="save"></button>
       </div>
     </form>
   </dialog>
 
   <dialog id="auto-dialog">
     <form id="auto-form" method="dialog">
-      <h2>자동 확인 주기</h2>
-      <p class="dialog-lead">앱이 켜져 있는 동안, 정한 간격마다 변경 확인을 자동으로 실행합니다.</p>
+      <h2 data-i18n="auto_dialog_title"></h2>
+      <p class="dialog-lead" data-i18n="auto_dialog_lead"></p>
       <div id="auto-options" class="options"></div>
       <div class="custom-row">
-        <label class="option"><input type="radio" name="interval" value="custom"> 직접 입력</label>
-        <input id="auto-custom-value" type="number" min="1" step="1" value="15" aria-label="간격">
-        <select id="auto-custom-unit" aria-label="단위">
-          <option value="60">분</option>
-          <option value="3600">시간</option>
-          <option value="86400">일</option>
+        <label class="option"><input type="radio" name="interval" value="custom"> <span data-i18n="auto_custom"></span></label>
+        <span data-i18n="auto_custom_prefix"></span>
+        <input id="auto-custom-value" type="number" min="1" step="1" value="15" data-i18n-attr="aria-label:auto_custom_value">
+        <select id="auto-custom-unit" data-i18n-attr="aria-label:auto_custom_unit">
+          <option value="60" data-i18n="auto_unit_minutes"></option>
+          <option value="3600" data-i18n="auto_unit_hours"></option>
+          <option value="86400" data-i18n="auto_unit_days"></option>
         </select>
-        <span>마다</span>
+        <span data-i18n="auto_custom_suffix"></span>
       </div>
-      <p id="auto-warning" class="warning">
-        간격이 짧으면 이 PC와 네트워크에 부하가 생길 수 있고, 대상 사이트에도 요청이 자주 가서 접속이 차단될 수 있습니다.
-        사이트가 많을수록 넉넉한 간격을 권합니다.
-      </p>
+      <p id="auto-warning" class="warning" data-i18n="auto_warning"></p>
       <p id="auto-error" class="form-error" hidden></p>
       <div class="dialog-actions">
-        <button id="auto-cancel" class="quiet" type="button">취소</button>
-        <button class="primary" type="submit">저장</button>
+        <button id="auto-cancel" class="quiet" type="button" data-i18n="cancel"></button>
+        <button class="primary" type="submit" data-i18n="save"></button>
       </div>
     </form>
   </dialog>
@@ -155,8 +155,8 @@
       <h2 id="confirm-title"></h2>
       <p id="confirm-text"></p>
       <div class="dialog-actions">
-        <button class="quiet" value="cancel" autofocus>취소</button>
-        <button id="confirm-ok" class="danger solid" value="ok">삭제</button>
+        <button class="quiet" value="cancel" data-i18n="cancel" autofocus></button>
+        <button id="confirm-ok" class="danger solid" value="ok" data-i18n="delete"></button>
       </div>
     </form>
   </dialog>

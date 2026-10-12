@@ -10,7 +10,7 @@ from dataclasses import asdict
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from . import APP_NAME, __version__, engine, paths, store as store_module
+from . import APP_NAME, __version__, engine, i18n, paths, store as store_module
 
 MAX_PARALLEL_CHECKS = 6
 MAX_DIFF_LINES = 400
@@ -24,6 +24,7 @@ STATIC_FILES = {
     "/": ("index.html", "text/html; charset=utf-8"),
     "/style.css": ("style.css", "text/css; charset=utf-8"),
     "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+    "/messages.json": ("messages.json", "application/json; charset=utf-8"),
 }
 PUBLIC_SITE_FIELDS = (
     "id", "name", "url", "selector", "ignore_patterns", "created_at",
@@ -82,9 +83,11 @@ class Checker:
             text = engine.check_page(site["url"], site["selector"], site["ignore_patterns"])
             self._store.record_text(site, text)
         except engine.CheckError as exc:
-            self._store.record_error(site, str(exc))
+            self._store.record_error(site, exc.dump())
         except Exception as exc:  # 한 사이트의 문제로 전체 점검이 멈추지 않게 한다
-            self._store.record_error(site, f"예상하지 못한 오류: {exc.__class__.__name__}: {exc}")
+            detail = f"{exc.__class__.__name__}: {exc}"
+            error = i18n.LocalizedError("unexpected_error", detail=detail)
+            self._store.record_error(site, error.dump())
         finally:
             with self._lock:
                 self._checking.discard(site["id"])
@@ -109,9 +112,9 @@ class AutoChecker:
 
     def set_interval(self, seconds) -> None:
         if isinstance(seconds, bool) or not isinstance(seconds, (int, float)):
-            raise ValueError("주기는 초 단위 숫자여야 합니다.")
+            raise i18n.InputError("interval_not_number")
         if seconds != 0 and not self._min_interval <= seconds <= MAX_AUTO_INTERVAL:
-            raise ValueError("주기는 1분 이상 30일 이하로 정해 주세요.")
+            raise i18n.InputError("interval_out_of_range")
         self._store.set_setting(AUTO_INTERVAL_SETTING, str(seconds))
         with self._lock:
             self._interval = seconds
@@ -161,9 +164,10 @@ class AutoChecker:
             self._checker.start()  # 이미 확인 중이면 아무 일도 하지 않는다.
 
 
-def public_site(site: dict) -> dict:
+def public_site(site: dict, lang: str = i18n.DEFAULT_LANGUAGE) -> dict:
     """화면에 보낼 사이트 정보. 변경된 사이트에는 차이를 함께 싣는다."""
     result = {key: site[key] for key in PUBLIC_SITE_FIELDS}
+    result["last_error"] = i18n.render_stored(site["last_error"], lang)
     if site["status"] == store_module.STATUS_CHANGED:
         lines = engine.diff_lines(site["baseline_text"] or "", site["current_text"] or "")
         result["diff"] = [asdict(line) for line in lines[:MAX_DIFF_LINES]]
@@ -171,11 +175,10 @@ def public_site(site: dict) -> dict:
     return result
 
 
-class ApiError(Exception):
-    def __init__(self, status: HTTPStatus, message: str):
-        super().__init__(message)
+class ApiError(i18n.LocalizedError):
+    def __init__(self, status: HTTPStatus, code: str, **params):
+        super().__init__(code, **params)
         self.status = status
-        self.message = message
 
 
 class AppServer(ThreadingHTTPServer):
@@ -218,6 +221,8 @@ class Handler(BaseHTTPRequestHandler):
         self._dispatch("DELETE")
 
     def _dispatch(self, method: str) -> None:
+        # 오류 문구는 요청이 원하는 언어로 돌려준다.
+        self._lang = i18n.pick_language(self.headers.get("Accept-Language"))
         try:
             # 거절할 요청이라도 본문은 먼저 읽는다. 읽지 않고 닫으면 상대가 응답 대신 연결 끊김을 본다.
             self._body = self._read_body()
@@ -228,24 +233,27 @@ class Handler(BaseHTTPRequestHandler):
                 return
             self._send_json(self._route(method, path))
         except ApiError as exc:
-            self._send_json({"error": exc.message}, exc.status)
+            self._send_json({"error": exc.text(self._lang)}, exc.status)
         except ValueError as exc:
-            self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+            self._send_json({"error": self._describe(exc)}, HTTPStatus.BAD_REQUEST)
+
+    def _describe(self, exc: Exception) -> str:
+        return exc.text(self._lang) if isinstance(exc, i18n.LocalizedError) else str(exc)
 
     def _guard_origin(self, method: str) -> None:
         """다른 웹사이트가 사용자의 브라우저를 통해 이 로컬 서버를 조작하지 못하게 막는다."""
         port = self.server.server_address[1]
         allowed_hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
         if self.headers.get("Host") not in allowed_hosts:
-            raise ApiError(HTTPStatus.FORBIDDEN, "허용되지 않은 접근입니다.")
+            raise ApiError(HTTPStatus.FORBIDDEN, "forbidden")
         if method == "GET":
             return
         origin = self.headers.get("Origin")
         if origin is not None and origin not in {f"http://{host}" for host in allowed_hosts}:
-            raise ApiError(HTTPStatus.FORBIDDEN, "허용되지 않은 접근입니다.")
+            raise ApiError(HTTPStatus.FORBIDDEN, "forbidden")
         # JSON 본문만 받는다: 다른 출처의 단순 폼 전송으로는 이 조건을 만족할 수 없다.
         if not (self.headers.get("Content-Type") or "").startswith("application/json"):
-            raise ApiError(HTTPStatus.UNSUPPORTED_MEDIA_TYPE, "JSON 요청만 받습니다.")
+            raise ApiError(HTTPStatus.UNSUPPORTED_MEDIA_TYPE, "json_only")
 
     def _route(self, method: str, path: str) -> dict:
         store, checker = self.server.store, self.server.checker
@@ -255,7 +263,7 @@ class Handler(BaseHTTPRequestHandler):
             return {"app": APP_NAME, "version": __version__}
         if (method, parts) == ("GET", ["api", "state"]):
             return {
-                "sites": [public_site(site) for site in store.list_sites()],
+                "sites": [public_site(site, self._lang) for site in store.list_sites()],
                 "job": checker.snapshot(),
                 "auto": self.server.auto.snapshot(),
                 "data_dir": str(paths.data_dir()),
@@ -266,7 +274,7 @@ class Handler(BaseHTTPRequestHandler):
             if site_ids is not None and not (
                 isinstance(site_ids, list) and all(isinstance(i, int) for i in site_ids)
             ):
-                raise ValueError("site_ids는 숫자 목록이어야 합니다.")
+                raise i18n.InputError("site_ids_invalid")
             return {"started": checker.start(site_ids)}
         if (method, parts) == ("POST", ["api", "auto"]):
             self.server.auto.set_interval(self._read_json().get("interval_seconds"))
@@ -296,7 +304,7 @@ class Handler(BaseHTTPRequestHandler):
                 return {"deleted": store.delete_sites()}
             site_ids = body.get("site_ids")
             if not (isinstance(site_ids, list) and all(isinstance(i, int) for i in site_ids)):
-                raise ValueError("site_ids는 숫자 목록이어야 합니다.")
+                raise i18n.InputError("site_ids_invalid")
             return {"deleted": store.delete_sites(site_ids)}
 
         if len(parts) >= 3 and parts[:2] == ["api", "sites"] and parts[2].isdigit():
@@ -311,27 +319,27 @@ class Handler(BaseHTTPRequestHandler):
                 found = store.get_site(site_id) is not None
                 store.acknowledge(site_id)
             else:
-                raise ApiError(HTTPStatus.NOT_FOUND, "없는 주소입니다.")
+                raise ApiError(HTTPStatus.NOT_FOUND, "not_found")
             if not found:
-                raise ApiError(HTTPStatus.NOT_FOUND, "사이트를 찾을 수 없습니다.")
+                raise ApiError(HTTPStatus.NOT_FOUND, "site_not_found")
             return {"ok": True}
 
-        raise ApiError(HTTPStatus.NOT_FOUND, "없는 주소입니다.")
+        raise ApiError(HTTPStatus.NOT_FOUND, "not_found")
 
     def _import_sites(self, entries) -> dict:
         """올바른 항목만 추가하고, 넣지 못한 항목은 이유와 함께 돌려준다."""
         if not isinstance(entries, list):
-            raise ValueError("사이트 목록이 들어 있지 않습니다.")
+            raise i18n.InputError("import_no_list")
         if len(entries) > MAX_IMPORT_SITES:
-            raise ValueError(f"한 번에 가져올 수 있는 사이트는 {MAX_IMPORT_SITES}개까지입니다.")
+            raise i18n.InputError("import_too_many", limit=MAX_IMPORT_SITES)
         valid, errors = [], []
         for position, entry in enumerate(entries, start=1):
             try:
                 if not isinstance(entry, dict):
-                    raise ValueError("항목의 형식이 올바르지 않습니다.")
+                    raise i18n.InputError("import_bad_entry")
                 valid.append(store_module.clean_site_fields(entry))
             except ValueError as exc:
-                errors.append({"position": position, "error": str(exc)})
+                errors.append({"position": position, "error": self._describe(exc)})
         added, skipped = self.server.store.import_sites(valid)
         return {"added": added, "skipped": skipped, "errors": errors}
 
@@ -342,7 +350,7 @@ class Handler(BaseHTTPRequestHandler):
             length = 0
         if length > MAX_BODY_BYTES:
             self.close_connection = True
-            raise ApiError(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, "요청이 너무 큽니다.")
+            raise ApiError(HTTPStatus.REQUEST_ENTITY_TOO_LARGE, "body_too_large")
         return self.rfile.read(length) if length > 0 else b""
 
     def _read_json(self) -> dict:
@@ -351,9 +359,9 @@ class Handler(BaseHTTPRequestHandler):
         try:
             data = json.loads(self._body)
         except (json.JSONDecodeError, UnicodeDecodeError) as exc:
-            raise ValueError("요청 본문이 올바른 JSON이 아닙니다.") from exc
+            raise i18n.InputError("body_not_json") from exc
         if not isinstance(data, dict):
-            raise ValueError("요청 본문은 JSON 객체여야 합니다.")
+            raise i18n.InputError("body_not_object")
         return data
 
     def _send_json(self, payload: dict, status: HTTPStatus = HTTPStatus.OK) -> None:

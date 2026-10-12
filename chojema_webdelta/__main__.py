@@ -6,7 +6,7 @@ import urllib.error
 import urllib.request
 import webbrowser
 
-from . import APP_NAME, __version__, paths
+from . import APP_NAME, __version__, i18n, paths
 from .server import AppServer
 from .store import Store
 
@@ -28,16 +28,21 @@ def running_instance_url(port: int) -> str | None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog=APP_NAME, description=__doc__)
-    parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="화면 서버 포트")
-    parser.add_argument("--no-browser", action="store_true", help="브라우저를 자동으로 열지 않음")
+    lang = i18n.system_language()
+
+    def say(code: str, **params) -> str:
+        return i18n.text(code, lang, **params)
+
+    parser = argparse.ArgumentParser(prog=APP_NAME, description=say("cli_description"))
+    parser.add_argument("--port", type=int, default=DEFAULT_PORT, help=say("cli_port_help"))
+    parser.add_argument("--no-browser", action="store_true", help=say("cli_no_browser_help"))
     args = parser.parse_args()
 
     server = None
     for port in range(args.port, args.port + PORT_ATTEMPTS):
         existing = running_instance_url(port)
         if existing:
-            print(f"{APP_NAME}가 이미 실행 중입니다: {existing}")
+            print(say("cli_already_running", app=APP_NAME, url=existing))
             if not args.no_browser:
                 webbrowser.open(existing)
             return
@@ -47,12 +52,12 @@ def main() -> None:
         except OSError:
             continue  # 다른 프로그램이 쓰는 포트
     if server is None:
-        raise SystemExit(f"사용할 수 있는 포트를 찾지 못했습니다 ({args.port}~).")
+        raise SystemExit(say("cli_no_port", port=args.port))
 
     print(f"{APP_NAME} {__version__}")
-    print(f"화면 주소: {server.url}")
-    print(f"데이터 폴더: {paths.data_dir()}")
-    print("끝내려면 화면의 '종료' 버튼을 누르거나 이 창을 닫으세요.")
+    print(say("cli_screen_url", url=server.url))
+    print(say("cli_data_dir", path=paths.data_dir()))
+    print(say("cli_quit_hint"))
     if not args.no_browser:
         webbrowser.open(server.url)
     try:

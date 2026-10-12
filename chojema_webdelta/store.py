@@ -13,7 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from . import engine
+from . import engine, i18n
 
 STATUS_NEW = "new"
 STATUS_UNCHANGED = "unchanged"
@@ -51,11 +51,11 @@ def _now() -> str:
 
 
 def clean_site_fields(data: dict) -> dict:
-    """입력값을 다듬고 검증한다. 문제가 있으면 사용자에게 보여 줄 문장으로 ValueError."""
+    """입력값을 다듬고 검증한다. 문제가 있으면 사용자에게 보여 줄 InputError(ValueError)."""
     url = str(data.get("url") or "").strip()
     parts = urlsplit(url)
     if parts.scheme not in ("http", "https") or not parts.netloc:
-        raise ValueError("주소는 http:// 또는 https:// 로 시작해야 합니다.")
+        raise i18n.InputError("bad_url")
     selector = str(data.get("selector") or "").strip()
     ignore_patterns = "\n".join(
         line.strip() for line in str(data.get("ignore_patterns") or "").splitlines() if line.strip()
@@ -63,7 +63,7 @@ def clean_site_fields(data: dict) -> dict:
     try:
         engine.compile_ignore_patterns(ignore_patterns)
     except engine.CheckError as exc:
-        raise ValueError(str(exc)) from exc
+        raise i18n.InputError(exc.code, **exc.params) from exc
     name = str(data.get("name") or "").strip() or parts.netloc
     return {"name": name, "url": url, "selector": selector, "ignore_patterns": ignore_patterns}
 

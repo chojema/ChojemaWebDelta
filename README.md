@@ -1,230 +1,246 @@
 # ChojemaWebDelta
 
-미리 등록해 둔 웹페이지를 방문해 **이전과 달라진 점이 있는지** 확인하는 로컬 앱입니다.
-실행하면 브라우저에 화면이 열리고, **변경 확인**을 누르면 등록된 사이트를 뒤에서 차례로 방문해
-사이트별로 변경 여부와 바뀐 내용을 보여 줍니다. 사이트 이름을 누르면 해당 페이지가 새 탭으로 열립니다.
+**English** | [한국어](README.ko.md)
 
-외부 서비스나 AI를 쓰지 않고, 내 PC 안에서 규칙 기반으로만 동작합니다.
+A local app that visits web pages you have registered and checks **whether anything has changed since last time**.
+When you start it, a screen opens in your browser. Press **Check for changes** and the app visits the registered sites
+in the background, then shows for each site whether it changed and what changed. Clicking a site's name opens the page in a new tab.
 
-## 다운로드
+It uses no external service or AI. Everything runs on your own computer with plain rules.
 
-현재 배포 버전은 [v0.1.0](https://github.com/chojema/ChojemaWebDelta/releases/tag/v0.1.0)입니다. 아래 실행 파일에는 Python이 포함되어 있습니다.
+## Download
 
-| 운영체제 | 지원 대상 | 다운로드 |
+The current release is [v0.1.0](https://github.com/chojema/ChojemaWebDelta/releases/tag/v0.1.0). The executables below include Python.
+
+| OS | Supported | Download |
 |---|---|---|
-| Windows | 64비트 x64 | [Windows ZIP](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.1.0/ChojemaWebDelta-0.1.0-windows-x64.zip) |
-| macOS | Apple Silicon(M1 이상), arm64 | [Mac 앱 ZIP](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.1.0/ChojemaWebDelta-0.1.0-macos-arm64.zip) |
+| Windows | 64-bit x64 | [Windows ZIP](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.1.0/ChojemaWebDelta-0.1.0-windows-x64.zip) |
+| macOS | Apple Silicon (M1 or later), arm64 | [Mac app ZIP](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.1.0/ChojemaWebDelta-0.1.0-macos-arm64.zip) |
 
-[SHA256 체크섬](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.1.0/SHA256SUMS.txt)으로 파일의 무결성을 확인할 수 있습니다.
-두 ZIP에는 프로그램과 함께 `LICENSE.txt`, `THIRD_PARTY_NOTICES.txt`가 들어 있습니다.
-Intel Mac과 Linux에서는 아래의 **소스로 실행** 방법을 사용하세요. 처음 실행할 때 표시될 수 있는 보안 안내는 운영체제별 실행 설명을 참고하세요.
+You can verify the files with the [SHA256 checksums](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.1.0/SHA256SUMS.txt).
+Both ZIPs contain `LICENSE.txt` and `THIRD_PARTY_NOTICES.txt` along with the program.
+On Intel Macs and Linux, use **Run from source** below. For the security prompts that may appear on first launch, see the instructions for each OS.
 
-## 실행
+The screen of the v0.1.0 executables is in Korean only. The Korean and English screen is available when you run from source, and will be included in the executables from the next release.
 
-### Windows: 실행 파일 내려받기
+## Running
 
-[릴리스 페이지](https://github.com/chojema/ChojemaWebDelta/releases/latest)에서
-`ChojemaWebDelta-<버전>-windows-x64.zip`을 내려받아 압축을 풀고, 안의 실행 파일을 더블클릭합니다. Python을 설치할 필요가 없습니다.
-단독 `.exe`도 같은 릴리스에서 제공하며, 이 경우 릴리스에 함께 제공하는 `LICENSE.txt`, `THIRD_PARTY_NOTICES.txt`가 라이선스 고지입니다.
+### Windows: download the executable
 
-- 서명되지 않은 프로그램이라 처음 실행할 때 "Windows의 PC 보호" 창이 뜰 수 있습니다. **추가 정보 → 실행**을 누르면 실행됩니다.
-- 이런 방식으로 묶은 실행 파일은 일부 백신이 악성으로 잘못 판정하는 경우가 있습니다. 마음에 걸리면 아래의 소스로 실행하는 방법을 쓰세요.
-- 내려받은 파일이 온전한지는 릴리스에 함께 올린 `SHA256SUMS.txt`의 값과 `certutil -hashfile <파일 이름> SHA256`의 결과를 비교해 확인할 수 있습니다.
-- 별도의 창 없이 실행되고 브라우저에 화면이 열립니다. 끝낼 때는 화면의 **종료** 버튼을 누릅니다.
+From the [releases page](https://github.com/chojema/ChojemaWebDelta/releases/latest), download
+`ChojemaWebDelta-<version>-windows-x64.zip`, extract it, and double-click the executable inside. You do not need to install Python.
+A standalone `.exe` is also provided in the same release; in that case the `LICENSE.txt` and `THIRD_PARTY_NOTICES.txt` published with the release are its license notices.
 
-### macOS: 앱 내려받기 (Apple Silicon)
+- The program is not signed, so a "Windows protected your PC" window may appear on first launch. Choose **More info → Run anyway** to start it.
+- Executables bundled this way are sometimes wrongly flagged as malicious by antivirus software. If that concerns you, run from source as described below.
+- To check that the download is intact, compare the output of `certutil -hashfile <file name> SHA256` with the value in the `SHA256SUMS.txt` published with the release.
+- It runs without a window of its own and opens the screen in your browser. To stop it, press **Quit** on the screen.
 
-[릴리스 페이지](https://github.com/chojema/ChojemaWebDelta/releases/latest)에서
-`ChojemaWebDelta-<버전>-macos-arm64.zip`을 내려받습니다. **Apple Silicon(M1 이상) Mac용**이며 Intel Mac용 실행 파일은 포함하지 않습니다. Python을 설치할 필요가 없습니다.
+### macOS: download the app (Apple Silicon)
 
-1. ZIP의 압축을 풀고 `ChojemaWebDelta.app`을 **응용 프로그램** 폴더로 옮깁니다.
-2. 앱을 더블클릭하면 브라우저에 화면이 열립니다. 끝낼 때는 화면의 **종료** 버튼을 누릅니다.
+From the [releases page](https://github.com/chojema/ChojemaWebDelta/releases/latest), download
+`ChojemaWebDelta-<version>-macos-arm64.zip`. It is **for Apple Silicon (M1 or later) Macs**; no executable for Intel Macs is included. You do not need to install Python.
 
-- 앱은 임시 서명(ad hoc)만 적용되어 있으며, Apple Developer ID 서명과 공증은 받지 않았습니다. 처음 실행할 때 macOS가 실행을 차단할 수 있습니다. 출처를 신뢰하는 경우에만 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**로 실행을 허용하세요. 조직에서 관리하는 Mac에서는 이 옵션을 사용할 수 없을 수 있습니다. [Apple의 실행 안내](https://support.apple.com/ko-kr/102445)를 참고하세요.
-- Intel Mac에서는 아래의 소스로 실행하는 방법을 사용하세요.
-- 파일의 무결성은 `shasum -a 256 <ZIP 파일 이름>`의 결과를 릴리스의 `SHA256SUMS.txt`와 비교해 확인할 수 있습니다.
+1. Extract the ZIP and move `ChojemaWebDelta.app` to the **Applications** folder.
+2. Double-click the app and the screen opens in your browser. To stop it, press **Quit** on the screen.
 
-### 소스로 실행 (Windows, macOS, Linux)
+- The app is only ad hoc signed; it has no Apple Developer ID signature and is not notarized. macOS may block it on first launch. Only if you trust the source, allow it under **System Settings → Privacy & Security → Open Anyway**. This option may be unavailable on Macs managed by an organization. See [Apple's instructions](https://support.apple.com/en-us/102445).
+- On Intel Macs, run from source as described below.
+- To check that the file is intact, compare the output of `shasum -a 256 <ZIP file name>` with the `SHA256SUMS.txt` of the release.
 
-Python 3.10 이상이 필요합니다. 이 저장소를 내려받은 뒤 아래 파일을 실행합니다.
-처음 실행할 때 운영체제별 전용 환경을 만들고 필요한 패키지를 설치합니다.
-Windows는 `.venv`, macOS는 `.venv-macos`, Linux는 `.venv-linux`를 사용하므로 같은 프로젝트 폴더에서 함께 관리할 수 있습니다.
+### Run from source (Windows, macOS, Linux)
 
-| 운영체제 | 방법 |
+Python 3.10 or later is required. Download this repository and run the file below.
+On first run it creates a dedicated environment for your OS and installs the required packages.
+Windows uses `.venv`, macOS `.venv-macos`, and Linux `.venv-linux`, so one project folder can be shared between them.
+
+| OS | How |
 |---|---|
-| Windows | `run.bat` 더블클릭 |
-| macOS | `run.command` 더블클릭 (또는 터미널에서 `./run.sh`) |
-| Linux | 터미널에서 `./run.sh` |
+| Windows | Double-click `run.bat` |
+| macOS | Double-click `run.command` (or run `./run.sh` in Terminal) |
+| Linux | Run `./run.sh` in a terminal |
 
-macOS와 Linux에서 실행 권한이 없다고 나오면 한 번만 `chmod +x run.sh run.command`를 실행하세요.
+If macOS or Linux reports that the file is not executable, run `chmod +x run.sh run.command` once.
 
-끝낼 때는 화면의 **종료** 버튼을 누르거나 실행 창을 닫습니다.
+To stop the app, press **Quit** on the screen or close the window it was started from.
 
-어느 방법이든, 이미 실행 중일 때 다시 실행하면 새로 띄우지 않고 기존 화면을 엽니다.
+Whichever way you start it, starting it again while it is already running opens the existing screen instead of a second copy.
 
-## 사용법
+## Usage
 
-1. **사이트 추가**로 지켜볼 페이지 주소를 등록합니다.
-2. **변경 확인**을 누릅니다. 처음 점검한 사이트는 그때의 내용이 비교 기준으로 저장됩니다.
-3. 다음부터는 기준과 달라진 사이트가 **변경됨**으로 표시됩니다. **변경 내용 보기**로 추가·삭제된 줄을 볼 수 있습니다.
-4. 내용을 확인했으면 **확인함**을 누릅니다. 현재 상태가 새 기준이 됩니다.
-   확인하기 전에는 다시 점검해도 변경 표시가 사라지지 않습니다.
+1. Register the address of a page to watch with **Add site**.
+2. Press **Check for changes**. The first time a site is checked, its content at that moment is saved as the baseline for comparison.
+3. From then on, sites that differ from the baseline are shown as **Changed**. **Show changes** lists the added and removed lines.
+4. Once you have looked at the change, press **Mark reviewed**. The current content becomes the new baseline.
+   Until you do, the change stays marked even if you check again.
 
-목록은 오른쪽 위 **정렬**에서 상태순(변경된 사이트 먼저), 최근 추가순, 오래된 추가순, 이름순으로 바꿀 수 있습니다.
+Use **Sort** at the top right to order the list by status (changed sites first), newest first, oldest first, or by name.
 
-### 자동 확인
+### Screen language
 
-상단의 **자동 확인 켜기** 버튼에서 주기를 정하면, 앱이 켜져 있는 동안 그 간격마다 변경 확인을 자동으로 실행합니다.
+The screen is available in Korean and English. It starts in your browser's language, and you can switch it with the language selector at the bottom of the screen. Your choice is remembered in that browser.
 
-- 기본 목록: 끔, 1분, 5분, 10분, 30분, 1시간, 2시간, 1일, 1주일. **직접 입력**으로 분·시간·일 단위의 다른 간격도 정할 수 있습니다(1분 이상 30일 이하).
-- 주기를 정한 시점부터 한 주기가 지난 뒤에 첫 확인을 합니다. 정한 주기는 저장되어 다음 실행 때도 적용됩니다.
-- 앱을 끄면 자동 확인도 멈춥니다. PC가 절전에서 깨어났을 때 예정 시각이 지나 있으면 곧바로 한 번 확인합니다.
-- **간격이 짧으면 이 PC와 네트워크에 부하가 생길 수 있고, 대상 사이트에도 요청이 자주 가서 접속이 차단될 수 있습니다.** 사이트가 많을수록 넉넉한 간격을 권합니다.
+Messages in the console window follow the language of your operating system. Set the environment variable `CHOJEMA_WEBDELTA_LANG` to `ko` or `en` to fix them to one language.
 
-### 목록 관리
+### Auto-check
 
-오른쪽 위 **목록 관리**에서 사이트 목록을 통째로 다룹니다.
+Choose an interval with the **Turn on auto-check** button at the top, and the app checks for changes automatically at that interval while it is running.
 
-- **내보내기**: 등록한 사이트의 이름, 주소, 지켜볼 영역, 무시할 패턴을 JSON 파일로 저장합니다. 저장된 비교 기준(스냅샷)은 담지 않습니다.
-- **가져오기**: 내보낸 파일을 읽어 사이트를 추가합니다. 주소·영역·패턴이 같은 사이트가 이미 있으면 건너뜁니다. 한 줄에 주소 하나씩 적은 텍스트 파일도 받습니다.
-- **전체 삭제**: 등록한 사이트와 비교 기준을 모두 지웁니다. 되돌릴 수 없으니 먼저 내보내 두세요.
+- Presets: Off, 1 minute, 5 minutes, 10 minutes, 30 minutes, 1 hour, 2 hours, 1 day, 1 week. With **Custom** you can set another interval in minutes, hours, or days (from 1 minute to 30 days).
+- The first check happens one full interval after you set it. The interval is saved and applies the next time you start the app.
+- Auto-check stops when you quit the app. If the computer wakes from sleep after the scheduled time has passed, one check runs right away.
+- **A short interval can put load on this computer and your network, and frequent requests may get you blocked by the sites being checked.** The more sites you have, the longer the interval should be.
 
-일부만 지우려면 카드 왼쪽의 체크 상자로 고른 뒤 **선택 삭제**를 누릅니다.
+### Managing the list
 
-가져온 사이트는 다음 점검에서 비교 기준을 새로 잡습니다. 다른 PC로 옮길 때도 내보내기와 가져오기를 쓰면 됩니다.
+**Manage list** at the top right handles the site list as a whole.
 
-### 변경이 없는데 매번 "변경됨"으로 나올 때
+- **Export**: saves the name, address, region to watch, and patterns to ignore of every registered site to a JSON file. Saved baselines (snapshots) are not included.
+- **Import**: reads an exported file and adds its sites. A site whose address, region, and patterns all match an existing one is skipped. A text file with one address per line is also accepted.
+- **Delete all**: removes every registered site and its baseline. This cannot be undone, so export first.
 
-조회수, 날짜, 광고처럼 방문할 때마다 달라지는 부분이 비교에 들어간 경우입니다. 사이트 **편집**에서 범위를 좁히세요.
+To delete only some sites, select them with the checkbox at the left of each card and press **Delete selected**.
 
-- **지켜볼 영역**: CSS 선택자를 적으면 그 영역만 비교합니다. 예: `#content`, `.board-list`
-- **무시할 패턴**: 정규식을 한 줄에 하나씩 적으면 일치하는 글자를 지우고 비교합니다. 예: `조회수 \d+`
+Imported sites get a fresh baseline on the next check. Export and import are also the way to move your list to another computer.
 
-영역이나 패턴을 바꾸면 비교 기준이 초기화되어, 다음 점검에서 다시 기준을 잡습니다.
+### When a site shows "Changed" every time although nothing changed
 
-### 지켜볼 영역 예시
+Parts that differ on every visit, such as view counts, dates, or ads, are being compared. Narrow the scope in the site's **Edit** dialog.
 
-페이지 소스에서 지켜볼 요소의 특징을 골라 적습니다. 편집 창의 **영역 예시 보기**에서 눌러서 추가할 수도 있습니다.
+- **Region to watch**: enter a CSS selector and only that region is compared. Example: `#content`, `.board-list`
+- **Patterns to ignore**: enter regular expressions, one per line, and matching text is removed before comparing. Example: `Views: \d+`
 
-```
-#content                      id가 content인 것              <div id="content">
-.board-list                   class에 board-list가 있는 것    <ul class="board-list">
-a.Link--primary               태그와 class를 함께             <a class="Link--primary Link">
-a[href^="/releases/tag/"]     주소가 이 글자로 시작하는 링크    <a href="/releases/tag/v1.0">
-#content .title               #content 안에 있는 .title
-#notice, #schedule            두 영역을 함께
-```
+Changing the region or the patterns resets the baseline; the next check saves a new one.
 
-- 빈칸 없이 붙여 쓰면 "모두 만족", 빈칸은 "~ 안의", 쉼표는 "또는"입니다.
-- 비교되는 것은 고른 요소 안의 글자입니다. `href`, `class` 같은 속성값은 요소를 찾는 데만 쓰입니다.
+### Region examples
 
-### 무시할 패턴 예시
-
-패턴과 일치한 글자만 지운 뒤 비교합니다. 편집 창의 **패턴 예시 보기**에서 눌러서 추가할 수도 있습니다.
+Describe the element to watch by what identifies it in the page source. You can also click to add these from **Show region examples** in the edit dialog.
 
 ```
-조회수?\s*:?\s*[\d,]+                  조회수            조회 1,234 / 조회수: 56
-\d{4}[-./]\s?\d{1,2}[-./]\s?\d{1,2}\.?   날짜              2026-10-12 / 2026. 10. 12.
-\d{1,2}:\d{2}(:\d{2})?                 시각              09:05 / 09:05:30
-\d+\s*(초|분|시간|일)\s*전               지난 시간          3분 전 / 2 시간 전
-(댓글|추천|좋아요)\s*\(?[\d,]+\)?        댓글·추천 수       댓글 (12) / 추천 3
-^.*광고.*$                             '광고'가 든 줄 전체
-^오늘 방문자.*$                         '오늘 방문자'로 시작하는 줄 전체
-(?i)copyright.*$                       대소문자 구분 없이 copyright부터 줄 끝까지
+#content                      the element whose id is content           <div id="content">
+.board-list                   elements whose class includes board-list  <ul class="board-list">
+a.Link--primary               a tag together with a class               <a class="Link--primary Link">
+a[href^="/releases/tag/"]     links whose address starts with this text <a href="/releases/tag/v1.0">
+#content .title               .title inside #content
+#notice, #schedule            two regions together
 ```
 
-- 줄에서 일치한 부분만 지워지고 나머지 글자는 남습니다. 줄을 통째로 빼려면 `^.*낱말.*$` 처럼 씁니다.
-- `\d`는 숫자 한 글자, `\s`는 공백, `+`는 한 번 이상, `*`는 0번 이상, `?`는 있어도 없어도 됨을 뜻합니다.
-- `. ( ) [ ] ? + * |` 를 글자 그대로 찾으려면 앞에 `\`를 붙입니다. 예: `\(광고\)`
-- 페이지의 연속된 공백은 한 칸으로 줄인 뒤에 패턴을 적용합니다.
-- 문법은 Python 정규식을 따릅니다. 패턴이 넓을수록 실제 변경까지 가릴 수 있으니, 지우려는 대상에 맞게 좁혀 쓰세요.
+- Written together without a space means "matches all", a space means "inside", and a comma means "or".
+- Only the text inside the selected elements is compared. Attribute values such as `href` and `class` are used only to find the elements.
 
-### 한계
+### Ignore pattern examples
 
-- 페이지를 받아 온 HTML만 봅니다. 자바스크립트로 나중에 채워지는 내용과 로그인이 필요한 페이지는 아직 지원하지 않습니다.
-- 글자만 비교합니다. 이미지나 레이아웃 변경은 감지하지 않습니다.
+Text that matches a pattern is removed before comparing. You can also click to add these from **Show pattern examples** in the edit dialog. The examples shown there follow the screen language; these are the English ones.
 
-## 데이터 저장 위치
+```
+(?i)views?:?\s*[\d,]+|[\d,.]+k?\s*views?        view count               Views: 1,234 / 1.2K views
+\d{4}[-./]\d{1,2}[-./]\d{1,2}                   numeric date             2026-10-12 / 2026/10/12
+(?i)(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4}
+                                                date with a month name   Oct 12, 2026 / October 12 2026
+(?i)\d{1,2}:\d{2}(:\d{2})?(\s*[ap]\.?m\.?)?     time                     09:05 / 9:05:30 PM
+(?i)\d+\s*(seconds?|minutes?|mins?|hours?|hrs?|days?)\s+ago
+                                                elapsed time             3 minutes ago / 2 hrs ago
+(?i)[\d,]+\s*(comments?|likes?|replies)|(comments?|likes?|replies)\s*\(?[\d,]+\)?
+                                                comment and like counts  12 comments / Likes (3)
+^.*Sponsored.*$                                 whole lines containing 'Sponsored'
+^Visitors today.*$                              whole lines starting with 'Visitors today'
+(?i)copyright.*$                                from copyright to the end of the line, ignoring case
+```
 
-사이트 목록과 스냅샷은 프로그램 폴더가 아닌 사용자 데이터 폴더에 저장됩니다. 화면 아래쪽에 실제 경로가 표시됩니다.
+- Only the matching part of a line is removed; the rest stays. To drop a whole line, write something like `^.*word.*$`.
+- `\d` is one digit, `\s` is whitespace, `+` means one or more, `*` zero or more, and `?` optional.
+- To match `. ( ) [ ] ? + * |` literally, put `\` in front. Example: `\(Ad\)`
+- Runs of whitespace on the page are collapsed to a single space before the patterns are applied.
+- The syntax is that of Python regular expressions. The broader a pattern, the more likely it hides a real change, so keep it narrow.
 
-| 운영체제 | 위치 |
+### Limitations
+
+- Only the HTML received for the page is examined. Content filled in later by JavaScript and pages that require a login are not supported yet.
+- Only text is compared. Changes to images or layout are not detected.
+
+## Where data is stored
+
+The site list and snapshots are stored in your user data folder, not in the program folder. The actual path is shown at the bottom of the screen.
+
+| OS | Location |
 |---|---|
 | Windows | `%APPDATA%\ChojemaWebDelta` |
 | macOS | `~/Library/Application Support/ChojemaWebDelta` |
 | Linux | `~/.local/share/ChojemaWebDelta` |
 
-환경 변수 `CHOJEMA_WEBDELTA_DATA`로 다른 폴더를 지정할 수 있습니다.
+Set the environment variable `CHOJEMA_WEBDELTA_DATA` to use a different folder.
 
-## 삭제
+## Uninstalling
 
-제거 프로그램은 따로 없습니다. 이 앱은 레지스트리, 시작 메뉴, 시작 프로그램, 백그라운드 서비스에 아무것도 등록하지 않으므로, 아래 두 가지만 지우면 됩니다.
+There is no uninstaller. The app registers nothing in the registry, the Start menu, startup items, or background services, so you only need to remove the two things below.
 
-1. 화면의 **종료** 버튼으로 앱을 끝냅니다.
-2. 프로그램과 데이터 폴더를 삭제합니다.
+1. Stop the app with **Quit** on the screen.
+2. Delete the program and the data folder.
 
 | | Windows | macOS |
 |---|---|---|
-| 프로그램 | 내려받은 `ChojemaWebDelta-…-windows-x64.exe` | `ChojemaWebDelta.app` |
-| 데이터 폴더 | `%APPDATA%\ChojemaWebDelta` | `~/Library/Application Support/ChojemaWebDelta` |
-| 데이터 폴더 여는 법 | 탐색기 주소창에 `%APPDATA%\ChojemaWebDelta` 입력 | Finder에서 **이동 → 폴더로 이동**(⇧⌘G)에 `~/Library/Application Support/ChojemaWebDelta` 입력 |
+| Program | The downloaded `ChojemaWebDelta-…-windows-x64.exe` | `ChojemaWebDelta.app` |
+| Data folder | `%APPDATA%\ChojemaWebDelta` | `~/Library/Application Support/ChojemaWebDelta` |
+| Opening the data folder | Type `%APPDATA%\ChojemaWebDelta` in the File Explorer address bar | In Finder, choose **Go → Go to Folder** (⇧⌘G) and enter `~/Library/Application Support/ChojemaWebDelta` |
 
-Windows의 `AppData`와 macOS의 사용자 `Library` 폴더는 기본적으로 숨겨져 있으므로 위 방법으로 데이터 폴더를 여세요. macOS의 **응용 프로그램** 폴더는 숨겨져 있지 않으며, 그곳으로 옮긴 앱은 Finder에서 찾을 수 있습니다. Linux의 데이터 폴더는 `~/.local/share/ChojemaWebDelta`입니다.
+`AppData` on Windows and the user `Library` folder on macOS are hidden by default, so open the data folder as described above. The **Applications** folder on macOS is not hidden, and an app moved there can be found in Finder. On Linux the data folder is `~/.local/share/ChojemaWebDelta`.
 
-- **목록을 남겨 두려면** 지우기 전에 **목록 관리 → 내보내기**로 파일을 저장해 두세요.
-- **스크립트(`run.bat`, `run.sh`, `run.command`)로 써 왔다면** 프로그램 대신 내려받은 프로젝트 폴더를 통째로 지웁니다. 전용 Python 환경(`.venv`, `.venv-macos`, `.venv-linux`)도 그 안에 있습니다.
-- **`CHOJEMA_WEBDELTA_DATA`로 다른 폴더를 지정했다면** 데이터는 그 폴더에 있습니다.
-- **앱은 두고 처음 상태로 되돌리려면** 데이터 폴더만 지웁니다. 다음에 실행하면 빈 목록으로 시작합니다.
+- **To keep your list**, save it with **Manage list → Export** before deleting.
+- **If you have been using the scripts (`run.bat`, `run.sh`, `run.command`)**, delete the whole downloaded project folder instead of a program. The dedicated Python environments (`.venv`, `.venv-macos`, `.venv-linux`) are inside it.
+- **If you set another folder with `CHOJEMA_WEBDELTA_DATA`**, the data is in that folder.
+- **To keep the app but return to a clean state**, delete only the data folder. The next start begins with an empty list.
 
-그 밖에 남을 수 있는 것은 두 가지이며, 그대로 두어도 지장이 없습니다.
+Two other things may remain; leaving them does no harm.
 
-- 브라우저에 기억된 목록 정렬 선택. 브라우저 설정에서 `127.0.0.1`의 사이트 데이터를 지우면 없어집니다.
-- Windows에서 앱이 강제 종료된 경우, 임시 폴더(`%TEMP%`)에 남는 `_MEI`로 시작하는 폴더. 정상 종료하면 자동으로 지워지며, 남아 있으면 삭제해도 됩니다.
+- The list sort order and screen language remembered by your browser. Clearing the site data for `127.0.0.1` in your browser settings removes them.
+- On Windows, if the app was force-closed, a folder whose name starts with `_MEI` in the temporary folder (`%TEMP%`). It is removed automatically on a normal exit, and can be deleted if it remains.
 
-## 개발
+## Development
 
 ```
 python -m pip install -r requirements.txt
-python -m chojema_webdelta            # 실행 (--port, --no-browser 옵션)
-python -m unittest discover -s tests -t .   # 테스트
+python -m chojema_webdelta            # run (options: --port, --no-browser)
+python -m unittest discover -s tests -t .   # tests
 ```
 
-| 파일 | 역할 |
+| File | Role |
 |---|---|
-| `chojema_webdelta/engine.py` | 페이지 가져오기, 영역 추출, 비교 |
-| `chojema_webdelta/store.py` | 사이트 목록과 스냅샷 저장 (SQLite) |
-| `chojema_webdelta/server.py` | 로컬 화면 서버, API, 백그라운드 점검 |
-| `chojema_webdelta/web/` | 화면 (HTML, CSS, JS) |
+| `chojema_webdelta/engine.py` | Fetching pages, extracting the region, comparing |
+| `chojema_webdelta/store.py` | Storing the site list and snapshots (SQLite) |
+| `chojema_webdelta/server.py` | Local screen server, API, background checks |
+| `chojema_webdelta/i18n.py` | Korean and English text for server errors and console output |
+| `chojema_webdelta/web/` | The screen (HTML, CSS, JS) |
+| `chojema_webdelta/web/messages.json` | Korean and English text for the screen |
 
-### 실행 파일로 묶기
+### Building an executable
 
-Python이 없는 PC에서도 실행되는 파일을 만듭니다. 만드는 운영체제용 파일만 생깁니다.
+This builds a file that runs on computers without Python. Only the file for the OS you build on is produced.
 
 ```
 python -m pip install pyinstaller
 python packaging/build.py
 ```
 
-Windows에서는 `dist/ChojemaWebDelta.exe`, macOS에서는 `dist/ChojemaWebDelta.app`이 만들어집니다.
-빌드할 때 설치된 의존성의 라이선스와 Python 런타임 고지를 모아 프로그램에 포함합니다. Windows에서는 실행 파일과 고지를 함께 담은 `dist/ChojemaWebDelta-windows-<아키텍처>.zip`도 만듭니다.
+It produces `dist/ChojemaWebDelta.exe` on Windows and `dist/ChojemaWebDelta.app` on macOS.
+The build collects the licenses of the installed dependencies and the Python runtime notices and includes them in the program. On Windows it also creates `dist/ChojemaWebDelta-windows-<architecture>.zip`, which contains the executable together with the notices.
 
-macOS에서는 다음 명령으로 전용 환경 생성, 의존성 설치, 앱 빌드를 한 번에 실행할 수 있습니다.
+On macOS, the following command creates the dedicated environment, installs the dependencies, and builds the app in one step.
 
 ```sh
 bash packaging/build_macos.sh
 ```
 
-Mac용 환경은 `.venv-macos`, 빌드 중간 파일은 `build/macos`에 보관합니다.
-기존 Windows용 `.venv`와 `dist/ChojemaWebDelta.exe`는 유지됩니다.
-빌드한 `dist/ChojemaWebDelta.app`을 더블클릭하면 브라우저에 화면이 열리며, 실행할 Mac에 Python을 따로 설치할 필요가 없습니다.
-이 스크립트는 빌드한 Mac의 CPU 아키텍처용 앱을 만듭니다.
-`dist/ChojemaWebDelta-macos-<아키텍처>.zip`도 함께 생성됩니다. 동기화 폴더에서 앱의 Finder 메타데이터가 다시 붙어 서명 검증이 실패하면, ZIP을 동기화하지 않는 폴더에 풀어 실행하세요.
-Mac 앱은 로컬 실행용 임시 서명(ad hoc)을 사용하며, Apple의 배포용 서명과 공증은 포함하지 않습니다.
+The Mac environment is kept in `.venv-macos` and intermediate build files in `build/macos`.
+The existing Windows `.venv` and `dist/ChojemaWebDelta.exe` are left untouched.
+Double-clicking the built `dist/ChojemaWebDelta.app` opens the screen in your browser; the Mac it runs on does not need Python installed.
+The script builds an app for the CPU architecture of the Mac it runs on.
+It also creates `dist/ChojemaWebDelta-macos-<architecture>.zip`. If Finder metadata gets re-attached to the app in a synced folder and signature verification fails, extract the ZIP in a folder that is not synced and run it from there.
+The Mac app uses an ad hoc signature for local use and does not include Apple's distribution signature or notarization.
 
-## 라이선스
+## License
 
-ChojemaWebDelta의 원본 코드(v0.1.0 포함)는 [MIT 라이선스](LICENSE)로 제공합니다.
-사용·수정·상업적 재배포가 가능하며, 저작권과 라이선스 고지를 유지해야 합니다.
+The original code of ChojemaWebDelta (including v0.1.0) is provided under the [MIT License](LICENSE).
+You may use, modify, and redistribute it commercially, provided the copyright and license notices are kept.
 
-포함된 Python 런타임과 외부 라이브러리는 각각의 라이선스를 따릅니다. 전체 고지와 원본 소스 배포 위치는 [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt)에 있습니다.
-프로그램을 다시 배포할 때는 `LICENSE.txt`와 `THIRD_PARTY_NOTICES.txt`를 함께 제공하세요.
+The bundled Python runtime and third-party libraries are under their own licenses. The full notices and the locations of the original sources are in [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt).
+When you redistribute the program, provide `LICENSE.txt` and `THIRD_PARTY_NOTICES.txt` with it.

@@ -8,10 +8,22 @@ case "$(uname -s)" in
   *) VENV_DIR=.venv-linux ;;
 esac
 
+# 안내 문구의 언어: CHOJEMA_WEBDELTA_LANG, 없으면 터미널의 언어 설정을 따른다.
+case "${CHOJEMA_WEBDELTA_LANG:-${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}}" in
+  ko*)
+    MSG_PREPARE="처음 실행 준비 중입니다. 잠시 기다려 주세요..."
+    MSG_PYTHON="Python 3.10 이상이 필요합니다. https://www.python.org/downloads/ 에서 설치한 뒤 다시 실행하세요."
+    ;;
+  *)
+    MSG_PREPARE="Preparing for the first run. Please wait..."
+    MSG_PYTHON="Python 3.10 or later is required. Install it from https://www.python.org/downloads/ and run this again."
+    ;;
+esac
+
 if [ ! -x "$VENV_DIR/bin/python" ]; then
-  echo "처음 실행 준비 중입니다. 잠시 기다려 주세요..."
+  echo "$MSG_PREPARE"
   if ! command -v python3 >/dev/null 2>&1; then
-    echo "Python 3.10 이상이 필요합니다. https://www.python.org/downloads/ 에서 설치한 뒤 다시 실행하세요."
+    echo "$MSG_PYTHON"
     exit 1
   fi
   python3 -m venv "$VENV_DIR"
