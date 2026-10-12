@@ -8,7 +8,20 @@
 
 ## 실행
 
-Python 3.10 이상이 필요합니다. 처음 실행할 때 전용 환경(`.venv`)을 만들고 필요한 패키지를 설치합니다.
+### Windows: 실행 파일 내려받기
+
+[릴리스 페이지](https://github.com/chojema/ChojemaWebDelta/releases/latest)에서
+`ChojemaWebDelta-<버전>-windows-x64.exe`를 내려받아 더블클릭합니다. Python을 설치할 필요가 없습니다.
+
+- 서명되지 않은 프로그램이라 처음 실행할 때 "Windows의 PC 보호" 창이 뜰 수 있습니다. **추가 정보 → 실행**을 누르면 실행됩니다.
+- 이런 방식으로 묶은 실행 파일은 일부 백신이 악성으로 잘못 판정하는 경우가 있습니다. 마음에 걸리면 아래의 소스로 실행하는 방법을 쓰세요.
+- 내려받은 파일이 온전한지는 릴리스에 함께 올린 `SHA256SUMS.txt`의 값과 `certutil -hashfile <파일 이름> SHA256`의 결과를 비교해 확인할 수 있습니다.
+- 별도의 창 없이 실행되고 브라우저에 화면이 열립니다. 끝낼 때는 화면의 **종료** 버튼을 누릅니다.
+
+### 소스로 실행 (Windows, macOS, Linux)
+
+Python 3.10 이상이 필요합니다. 이 저장소를 내려받은 뒤 아래 파일을 실행합니다.
+처음 실행할 때 전용 환경(`.venv`)을 만들고 필요한 패키지를 설치합니다.
 
 | 운영체제 | 방법 |
 |---|---|
@@ -19,7 +32,8 @@ Python 3.10 이상이 필요합니다. 처음 실행할 때 전용 환경(`.venv
 macOS와 Linux에서 실행 권한이 없다고 나오면 한 번만 `chmod +x run.sh run.command`를 실행하세요.
 
 끝낼 때는 화면의 **종료** 버튼을 누르거나 실행 창을 닫습니다.
-이미 실행 중일 때 다시 실행하면 새로 띄우지 않고 기존 화면을 엽니다.
+
+어느 방법이든, 이미 실행 중일 때 다시 실행하면 새로 띄우지 않고 기존 화면을 엽니다.
 
 ## 사용법
 
@@ -124,7 +138,7 @@ a[href^="/releases/tag/"]     주소가 이 글자로 시작하는 링크    <a 
 
 | | Windows | macOS |
 |---|---|---|
-| 프로그램 | `ChojemaWebDelta.exe` | `ChojemaWebDelta.app` |
+| 프로그램 | 내려받은 `ChojemaWebDelta-…-windows-x64.exe` | `ChojemaWebDelta.app` |
 | 데이터 폴더 | `%APPDATA%\ChojemaWebDelta` | `~/Library/Application Support/ChojemaWebDelta` |
 | 데이터 폴더 여는 법 | 탐색기 주소창에 `%APPDATA%` 입력 | Finder에서 **이동 → 폴더로 이동**(⇧⌘G)에 `~/Library/Application Support` 입력 |
 
