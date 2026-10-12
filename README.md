@@ -18,6 +18,18 @@
 - 내려받은 파일이 온전한지는 릴리스에 함께 올린 `SHA256SUMS.txt`의 값과 `certutil -hashfile <파일 이름> SHA256`의 결과를 비교해 확인할 수 있습니다.
 - 별도의 창 없이 실행되고 브라우저에 화면이 열립니다. 끝낼 때는 화면의 **종료** 버튼을 누릅니다.
 
+### macOS: 앱 내려받기 (Apple Silicon)
+
+[릴리스 페이지](https://github.com/chojema/ChojemaWebDelta/releases/latest)에서
+`ChojemaWebDelta-<버전>-macos-arm64.zip`을 내려받습니다. **Apple Silicon(M1 이상) Mac용**이며 Intel Mac용 실행 파일은 포함하지 않습니다. Python을 설치할 필요가 없습니다.
+
+1. ZIP의 압축을 풀고 `ChojemaWebDelta.app`을 **응용 프로그램** 폴더로 옮깁니다.
+2. 앱을 더블클릭하면 브라우저에 화면이 열립니다. 끝낼 때는 화면의 **종료** 버튼을 누릅니다.
+
+- 앱은 임시 서명(ad hoc)만 적용되어 있으며, Apple Developer ID 서명과 공증은 받지 않았습니다. 처음 실행할 때 macOS가 실행을 차단할 수 있습니다. 출처를 신뢰하는 경우에만 **시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기**로 실행을 허용하세요. 조직에서 관리하는 Mac에서는 이 옵션을 사용할 수 없을 수 있습니다. [Apple의 실행 안내](https://support.apple.com/ko-kr/102445)를 참고하세요.
+- Intel Mac에서는 아래의 소스로 실행하는 방법을 사용하세요.
+- 파일의 무결성은 `shasum -a 256 <ZIP 파일 이름>`의 결과를 릴리스의 `SHA256SUMS.txt`와 비교해 확인할 수 있습니다.
+
 ### 소스로 실행 (Windows, macOS, Linux)
 
 Python 3.10 이상이 필요합니다. 이 저장소를 내려받은 뒤 아래 파일을 실행합니다.
