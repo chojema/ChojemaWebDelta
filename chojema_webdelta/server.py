@@ -264,6 +264,7 @@ class Handler(BaseHTTPRequestHandler):
         if (method, parts) == ("GET", ["api", "state"]):
             return {
                 "sites": [public_site(site, self._lang) for site in store.list_sites()],
+                "manual": store.list_manual(),
                 "job": checker.snapshot(),
                 "auto": self.server.auto.snapshot(),
                 "data_dir": str(paths.data_dir()),
@@ -295,9 +296,29 @@ class Handler(BaseHTTPRequestHandler):
                 "format": EXPORT_FORMAT,
                 "exported_at": datetime.now().isoformat(timespec="seconds"),
                 "sites": store.export_sites(),
+                "manual_sites": store.export_manual(),
             }
         if (method, parts) == ("POST", ["api", "import"]):
-            return self._import_sites(self._read_json().get("sites"))
+            body = self._read_json()
+            return self._import_sites(body.get("sites"), body.get("manual_sites"))
+        if (method, parts) == ("POST", ["api", "manual"]):
+            return {"id": store.add_manual(store_module.clean_manual_fields(self._read_json()))}
+
+        if len(parts) >= 3 and parts[:2] == ["api", "manual"] and parts[2].isdigit():
+            manual_id = int(parts[2])
+            rest = parts[3:]
+            if method == "PUT" and not rest:
+                fields = store_module.clean_manual_fields(self._read_json())
+                found = store.update_manual(manual_id, fields)
+            elif method == "DELETE" and not rest:
+                found = store.delete_manual(manual_id)
+            elif method == "POST" and rest == ["opened"]:
+                found = store.mark_opened(manual_id)
+            else:
+                raise ApiError(HTTPStatus.NOT_FOUND, "not_found")
+            if not found:
+                raise ApiError(HTTPStatus.NOT_FOUND, "site_not_found")
+            return {"ok": True}
         if (method, parts) == ("POST", ["api", "sites", "delete"]):
             body = self._read_json()
             if body.get("all") is True:
@@ -318,6 +339,8 @@ class Handler(BaseHTTPRequestHandler):
             elif method == "POST" and rest == ["ack"]:
                 found = store.get_site(site_id) is not None
                 store.acknowledge(site_id)
+            elif method == "POST" and rest == ["to-manual"]:
+                found = store.move_to_manual(site_id) is not None
             else:
                 raise ApiError(HTTPStatus.NOT_FOUND, "not_found")
             if not found:
@@ -326,22 +349,38 @@ class Handler(BaseHTTPRequestHandler):
 
         raise ApiError(HTTPStatus.NOT_FOUND, "not_found")
 
-    def _import_sites(self, entries) -> dict:
-        """올바른 항목만 추가하고, 넣지 못한 항목은 이유와 함께 돌려준다."""
-        if not isinstance(entries, list):
+    def _import_sites(self, entries, manual_entries=None) -> dict:
+        """올바른 항목만 추가하고, 넣지 못한 항목은 이유와 함께 돌려준다.
+
+        수동 확인 목록(manual_sites)은 이 기능이 생긴 뒤에 내보낸 파일에만 있으므로 없어도 된다.
+        항목 번호(position)는 점검 목록 다음에 수동 확인 목록이 이어지는 순서로 센다.
+        """
+        if manual_entries is None:
+            manual_entries = []
+        if not isinstance(entries, list) or not isinstance(manual_entries, list):
             raise i18n.InputError("import_no_list")
-        if len(entries) > MAX_IMPORT_SITES:
+        if len(entries) + len(manual_entries) > MAX_IMPORT_SITES:
             raise i18n.InputError("import_too_many", limit=MAX_IMPORT_SITES)
-        valid, errors = [], []
-        for position, entry in enumerate(entries, start=1):
-            try:
-                if not isinstance(entry, dict):
-                    raise i18n.InputError("import_bad_entry")
-                valid.append(store_module.clean_site_fields(entry))
-            except ValueError as exc:
-                errors.append({"position": position, "error": self._describe(exc)})
-        added, skipped = self.server.store.import_sites(valid)
-        return {"added": added, "skipped": skipped, "errors": errors}
+        errors = []
+
+        def clean_all(items, cleaner, first_position):
+            valid = []
+            for position, entry in enumerate(items, start=first_position):
+                try:
+                    if not isinstance(entry, dict):
+                        raise i18n.InputError("import_bad_entry")
+                    valid.append(cleaner(entry))
+                except ValueError as exc:
+                    errors.append({"position": position, "error": self._describe(exc)})
+            return valid
+
+        sites = clean_all(entries, store_module.clean_site_fields, 1)
+        manual = clean_all(manual_entries, store_module.clean_manual_fields, len(entries) + 1)
+        added, skipped = self.server.store.import_sites(sites)
+        manual_added, manual_skipped = self.server.store.import_manual(manual)
+        return {
+            "added": added + manual_added, "skipped": skipped + manual_skipped, "errors": errors,
+        }
 
     def _read_body(self) -> bytes:
         try:

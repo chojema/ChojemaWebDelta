@@ -58,6 +58,9 @@ def fetch(url: str) -> bytes:
     except httpx.HTTPError as exc:
         raise CheckError("fetch_failed", detail=exc.__class__.__name__) from exc
     if response.status_code >= 400:
+        # Cloudflare 봇 확인 화면은 브라우저에서 자바스크립트를 실행해야 통과되므로 따로 알린다.
+        if response.headers.get("cf-mitigated") == "challenge":
+            raise CheckError("bot_challenge", status=response.status_code)
         raise CheckError("http_error", status=response.status_code)
     return response.content
 

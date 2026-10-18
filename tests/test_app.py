@@ -318,6 +318,25 @@ class StoreTest(unittest.TestCase):
         self.assertIsNone(self.site()["baseline_text"])
         self.assertIsNone(self.site()["status"])
 
+    def test_manual_entries_are_cleaned(self):
+        fields = store_module.clean_manual_fields({"url": " https://example.com/x ", "note": " 매주\n 월요일 "})
+        self.assertEqual(fields, {"name": "example.com", "url": "https://example.com/x", "note": "매주 월요일"})
+        with self.assertRaises(ValueError):
+            store_module.clean_manual_fields({"url": "example.com"})
+        with self.assertRaises(ValueError):
+            store_module.clean_manual_fields({"url": "https://example.com/", "note": "가" * 501})
+
+    def test_move_to_manual_keeps_name_and_url(self):
+        self.store.record_text(self.site(), "v1")
+        manual_id = self.store.move_to_manual(self.site_id)
+        self.assertIsNone(self.site())
+        [item] = self.store.list_manual()
+        self.assertEqual((item["id"], item["name"], item["url"]), (manual_id, "example.com", "https://example.com/a"))
+        self.assertIsNone(item["last_opened_at"])
+        self.assertTrue(self.store.mark_opened(manual_id))
+        self.assertIsNotNone(self.store.list_manual()[0]["last_opened_at"])
+        self.assertIsNone(self.store.move_to_manual(self.site_id))
+
     def test_stale_result_is_dropped_after_edit(self):
         before_edit = self.site()
         fields = store_module.clean_site_fields({"url": "https://example.com/b"})
@@ -383,7 +402,7 @@ class FullFlowTest(unittest.TestCase):
     """임시 웹페이지를 띄워 두고 API로 등록 → 점검 → 변경 감지 → 확인까지 돌려 본다."""
 
     def setUp(self):
-        self.page = {"body": "처음 내용", "views": 0, "status": 200}
+        self.page = {"body": "처음 내용", "views": 0, "status": 200, "headers": {}}
         page = self.page
 
         class PageHandler(BaseHTTPRequestHandler):
@@ -395,6 +414,8 @@ class FullFlowTest(unittest.TestCase):
                 self.send_response(page["status"])
                 self.send_header("Content-Type", "text/html")
                 self.send_header("Content-Length", str(len(body)))
+                for name, value in page["headers"].items():
+                    self.send_header(name, value)
                 self.end_headers()
                 self.wfile.write(body)
 
@@ -459,6 +480,15 @@ class FullFlowTest(unittest.TestCase):
             state = self.call("GET", "/api/state", headers={"Accept-Language": lang})
             self.assertEqual(state["sites"][0]["last_error"], expected)
 
+    def test_reports_cloudflare_browser_check(self):
+        self.call("POST", "/api/sites", {"url": self.target_url})
+        self.page["status"] = 403
+        self.page["headers"] = {"cf-mitigated": "challenge"}
+        site = self.check_and_wait()[0]
+        self.assertEqual(site["status"], "error")
+        self.assertEqual(site["last_error"], i18n.text("bot_challenge", "en", status=403))
+        self.assertIn("manual check list", site["last_error"])
+
     def test_errors_follow_the_requested_language(self):
         cases = [
             ("ko", "주소는 http:// 또는 https:// 로 시작해야 합니다."),
@@ -508,6 +538,44 @@ class FullFlowTest(unittest.TestCase):
         self.assertEqual(self.call("POST", "/api/sites/delete", {"all": True}), {"deleted": 3})
         self.assertEqual(self.call("GET", "/api/state")["sites"], [])
         self.assertEqual(self.call("POST", "/api/import", exported)["added"], 3)
+
+    def test_manual_list_is_kept_apart_from_checks(self):
+        self.call("POST", "/api/sites", {"url": self.target_url})
+        self.page["status"] = 403
+        self.page["headers"] = {"cf-mitigated": "challenge"}
+        site = self.check_and_wait()[0]
+        self.call("POST", f"/api/sites/{site['id']}/to-manual")
+        state = self.call("GET", "/api/state")
+        self.assertEqual(state["sites"], [])
+        [moved] = state["manual"]
+        self.assertEqual(moved["url"], self.target_url)
+
+        manual_id = self.call("POST", "/api/manual", {"url": "https://example.com/notes", "note": "월요일"})["id"]
+        self.call("PUT", f"/api/manual/{manual_id}", {"url": "https://example.com/notes", "name": "메모"})
+        self.call("POST", f"/api/manual/{manual_id}/opened")
+        item = self.call("GET", "/api/state")["manual"][1]
+        self.assertEqual((item["name"], item["note"]), ("메모", ""))
+        self.assertIsNotNone(item["last_opened_at"])
+
+        # 변경 확인은 수동 확인 목록을 방문하지 않는다.
+        views = self.page["views"]
+        self.assertEqual(self.check_and_wait(), [])
+        self.assertEqual(self.page["views"], views)
+
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            self.call("POST", "/api/manual/999/opened")
+        self.assertEqual(caught.exception.code, 404)
+
+        exported = self.call("GET", "/api/export")
+        self.assertEqual(exported["manual_sites"], [
+            {"name": moved["name"], "url": self.target_url, "note": ""},
+            {"name": "메모", "url": "https://example.com/notes", "note": ""},
+        ])
+        self.assertEqual(self.call("POST", "/api/sites/delete", {"all": True}), {"deleted": 2})
+        result = self.call("POST", "/api/import", {**exported, "manual_sites": exported["manual_sites"] * 2})
+        self.assertEqual((result["added"], result["skipped"]), (2, 2))
+        self.call("DELETE", f"/api/manual/{self.call('GET', '/api/state')['manual'][0]['id']}")
+        self.assertEqual(len(self.call("GET", "/api/state")["manual"]), 1)
 
     def test_auto_interval_can_be_set_through_the_api(self):
         self.assertEqual(self.call("GET", "/api/state")["auto"]["interval_seconds"], 0)

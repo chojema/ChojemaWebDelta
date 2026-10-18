@@ -89,13 +89,22 @@ Choose an interval with the **Turn on auto-check** button at the top, and the ap
 - Auto-check stops when you quit the app. If the computer wakes from sleep after the scheduled time has passed, one check runs right away.
 - **A short interval can put load on this computer and your network, and frequent requests may get you blocked by the sites being checked.** The more sites you have, the longer the interval should be.
 
+### Manual check list
+
+Some sites cannot be checked for changes by this app: for example, sites that block automated access with a browser check, or sites that fill in their content later with JavaScript. If you still want to keep an eye on such a site, put it in the **Manual check list** below the main list.
+
+- Add it with **Add manual site**. You can enter an address, a name, and an optional note (for example "Look every Monday").
+- The app does not visit these sites. They are not included in **Check for changes** or auto-check.
+- Clicking a name opens the page in a new tab of your browser and records the date you last opened it, so you can see when you last looked.
+- A site in the main list whose check failed has a **Move to manual list** button. Moving it keeps the name and address and removes its saved baseline.
+
 ### Managing the list
 
 **Manage list** at the top right handles the site list as a whole.
 
-- **Export**: saves the name, address, region to watch, and patterns to ignore of every registered site to a JSON file. Saved baselines (snapshots) are not included.
+- **Export**: saves the name, address, region to watch, and patterns to ignore of every registered site, along with the manual check list (name, address, note), to a JSON file. Saved baselines (snapshots) are not included.
 - **Import**: reads an exported file and adds its sites. A site whose address, region, and patterns all match an existing one is skipped. A text file with one address per line is also accepted.
-- **Delete all**: removes every registered site and its baseline. This cannot be undone, so export first.
+- **Delete all**: removes every site in both lists and its baseline. This cannot be undone, so export first.
 
 To delete only some sites, select them with the checkbox at the left of each card and press **Delete selected**.
 
@@ -154,6 +163,7 @@ Text that matches a pattern is removed before comparing. You can also click to a
 ### Limitations
 
 - Only the HTML received for the page is examined. Content filled in later by JavaScript and pages that require a login are not supported yet.
+- Pages that block automated access with a browser check (for example Cloudflare's "verify you are human" screen) cannot be checked. The app reports this instead of a plain HTTP 403; keep such pages in the manual check list if you need them.
 - Only text is compared. Changes to images or layout are not detected.
 
 ## Where data is stored

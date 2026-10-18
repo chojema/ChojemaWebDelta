@@ -80,6 +80,7 @@ let locale = FALLBACK_LOCALES[lang];
 let pluralRules = new Intl.PluralRules(lang);
 let state = {
   sites: [],
+  manual: [],
   job: { running: false, total: 0, done: 0, checking: [] },
   auto: { interval_seconds: 0, next_check_at: null },
 };
@@ -88,6 +89,8 @@ let pollTimer = null;
 let autoRefreshTimer = null;
 let editingId = null;
 let confirmingDeleteId = null;
+let editingManualId = null;
+let confirmingManualDeleteId = null;
 let sortKey = loadSortKey();
 const openDiffs = new Set();
 const selected = new Set();
@@ -283,7 +286,7 @@ function render() {
   const liveIds = new Set(state.sites.map((site) => site.id));
   for (const id of selected) if (!liveIds.has(id)) selected.delete(id);
   const fingerprint = JSON.stringify(
-    [state, [...openDiffs], confirmingDeleteId, sortKey, [...selected], lang],
+    [state, [...openDiffs], confirmingDeleteId, confirmingManualDeleteId, sortKey, [...selected], lang],
   );
   if (fingerprint === lastRendered) return;
   lastRendered = fingerprint;
@@ -333,9 +336,11 @@ function render() {
   $("sort").parentElement.hidden = sites.length < 2;
   $("sites").replaceChildren(...[...sites].sort(SORTERS[sortKey]).map(renderSite));
   $("empty").hidden = sites.length > 0;
+  $("manual").replaceChildren(...state.manual.map(renderManual));
 
-  $("export").disabled = sites.length === 0;
-  $("delete-all").disabled = sites.length === 0;
+  const listed = sites.length + state.manual.length;
+  $("export").disabled = listed === 0;
+  $("delete-all").disabled = listed === 0;
   $("selection").hidden = selected.size === 0;
   $("selection-count").textContent = tn("selection_count", selected.size);
   $("select-all").checked = selected.size === sites.length;
@@ -404,6 +409,19 @@ function renderSite(site) {
       ...(busy ? { disabled: "" } : {}),
       onclick: () => act(() => api("POST", "/api/check", { site_ids: [site.id] })),
     }),
+  );
+  // 앱이 내용을 받아 오지 못하는 사이트는 직접 열어 보는 목록으로 옮길 수 있게 한다.
+  if (status === "error") {
+    head.append(el("button", {
+      class: "small quiet", type: "button", text: t("to_manual"), title: t("to_manual_title"),
+      ...(busy ? { disabled: "" } : {}),
+      onclick: () => act(async () => {
+        await api("POST", `/api/sites/${site.id}/to-manual`);
+        return t("moved_to_manual", { name: site.name });
+      }),
+    }));
+  }
+  head.append(
     el("button", {
       class: "small quiet", type: "button", text: t("edit"), onclick: () => openDialog(site),
     }),
@@ -427,6 +445,49 @@ function renderSite(site) {
   }
   if (status === "changed" && openDiffs.has(site.id)) item.append(renderDiff(site));
   return item;
+}
+
+// 수동 확인 목록의 항목: 점검하지 않고, 사용자가 직접 열어 본 시각만 기록한다.
+function renderManual(item) {
+  const markOpened = () => act(() => api("POST", `/api/manual/${item.id}/opened`));
+  const head = el("div", { class: "site-head" }, [
+    el("a", {
+      class: "site-name", href: item.url, target: "_blank", rel: "noopener noreferrer",
+      title: t("open_page_title"), text: item.name,
+      onclick: markOpened,
+      // 가운데 버튼으로 연 경우도 연 것으로 친다.
+      onauxclick: (event) => { if (event.button === 1) markOpened(); },
+    }),
+    el("span", { class: "spacer" }),
+    el("button", {
+      class: "small quiet", type: "button", text: t("edit"), onclick: () => openManualDialog(item),
+    }),
+  ]);
+  if (confirmingManualDeleteId === item.id) {
+    head.append(
+      el("button", {
+        class: "small danger", type: "button", text: t("delete_confirm"),
+        onclick: () => { confirmingManualDeleteId = null; act(() => api("DELETE", `/api/manual/${item.id}`)); },
+      }),
+      el("button", {
+        class: "small quiet", type: "button", text: t("cancel"),
+        onclick: () => { confirmingManualDeleteId = null; render(); },
+      }),
+    );
+  } else {
+    head.append(el("button", {
+      class: "small quiet", type: "button", text: t("delete"),
+      onclick: () => { confirmingManualDeleteId = item.id; render(); },
+    }));
+  }
+
+  const metaParts = [item.url];
+  metaParts.push(item.last_opened_at
+    ? t("meta_last_opened", { time: formatTime(item.last_opened_at) }) : t("meta_never_opened"));
+  const children = [head];
+  if (item.note) children.push(el("div", { class: "manual-note", text: item.note }));
+  children.push(el("div", { class: "site-meta muted", title: item.url, text: metaParts.join(" · ") }));
+  return el("li", { class: "site manual-item" }, children);
 }
 
 function renderDiff(site) {
@@ -507,6 +568,37 @@ form.addEventListener("submit", async (event) => {
   await refresh();
 });
 
+const manualDialog = $("manual-dialog");
+const manualForm = $("manual-form");
+
+function openManualDialog(item) {
+  editingManualId = item ? item.id : null;
+  $("manual-dialog-title").textContent = item ? t("manual_edit") : t("manual_add");
+  manualForm.reset();
+  if (item) {
+    for (const name of ["url", "name", "note"]) manualForm.elements[name].value = item[name];
+  }
+  $("manual-form-error").hidden = true;
+  manualDialog.showModal();
+}
+
+manualForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const fields = Object.fromEntries(new FormData(manualForm));
+  try {
+    if (editingManualId === null) await api("POST", "/api/manual", fields);
+    else await api("PUT", `/api/manual/${editingManualId}`, fields);
+  } catch (error) {
+    $("manual-form-error").textContent = error.message;
+    $("manual-form-error").hidden = false;
+    return;
+  }
+  manualDialog.close();
+  await refresh();
+});
+$("manual-cancel").addEventListener("click", () => manualDialog.close());
+$("add-manual").addEventListener("click", () => openManualDialog(null));
+
 function closeManageMenu() {
   $("manage").open = false;
 }
@@ -521,10 +613,11 @@ async function exportSites() {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
-  return tn("exported", data.sites.length);
+  return tn("exported", data.sites.length + data.manual_sites.length);
 }
 
 // 내보낸 JSON 파일, 또는 한 줄에 주소 하나씩 적은 텍스트 파일을 받는다.
+// 텍스트 파일의 주소는 변경 확인 목록에 넣는다.
 function parseImportFile(text) {
   const trimmed = text.trim();
   if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
@@ -534,20 +627,25 @@ function parseImportFile(text) {
     } catch (error) {
       throw new Error(t("import_bad_json"));
     }
-    const sites = Array.isArray(data) ? data : data.sites;
-    if (!Array.isArray(sites)) throw new Error(t("import_no_list"));
-    return sites;
+    if (Array.isArray(data)) return { sites: data, manual_sites: [] };
+    const sites = data.sites ?? [];
+    const manual = data.manual_sites ?? [];
+    if (!Array.isArray(sites) || !Array.isArray(manual) || !("sites" in data || "manual_sites" in data)) {
+      throw new Error(t("import_no_list"));
+    }
+    return { sites, manual_sites: manual };
   }
-  return trimmed.split("\n")
+  const sites = trimmed.split("\n")
     .map((line) => line.trim())
     .filter((line) => line && !line.startsWith("#"))
     .map((url) => ({ url }));
+  return { sites, manual_sites: [] };
 }
 
 async function importSites(file) {
-  const sites = parseImportFile(await file.text());
-  if (sites.length === 0) throw new Error(t("import_empty"));
-  const result = await api("POST", "/api/import", { sites });
+  const lists = parseImportFile(await file.text());
+  if (lists.sites.length + lists.manual_sites.length === 0) throw new Error(t("import_empty"));
+  const result = await api("POST", "/api/import", lists);
   const parts = [tn("imported", result.added)];
   if (result.skipped) parts.push(tn("import_skipped", result.skipped));
   if (result.errors.length) {
@@ -568,7 +666,7 @@ $("import-file").addEventListener("change", (event) => {
 $("delete-all").addEventListener("click", async () => {
   closeManageMenu();
   const confirmed = await confirmDelete(
-    tn("delete_all_title", state.sites.length), t("delete_all_text"),
+    tn("delete_all_title", state.sites.length + state.manual.length), t("delete_all_text"),
   );
   if (!confirmed) return;
   act(async () => {

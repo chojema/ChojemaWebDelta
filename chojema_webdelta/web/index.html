@@ -52,6 +52,15 @@
     </div>
     <ul id="sites" class="sites"></ul>
     <p id="empty" class="empty" data-i18n-html="empty_html" hidden></p>
+
+    <section class="manual" aria-labelledby="manual-title">
+      <div class="section-head">
+        <h2 id="manual-title" data-i18n="manual_title"></h2>
+        <button id="add-manual" class="small" type="button" data-i18n="manual_add"></button>
+      </div>
+      <p class="section-lead muted" data-i18n="manual_lead"></p>
+      <ul id="manual" class="sites"></ul>
+    </section>
     <p id="clock" class="clock muted" aria-hidden="true"></p>
     <p id="auto-status" class="clock muted" hidden></p>
   </main>
@@ -120,6 +129,27 @@
       <p id="form-error" class="form-error" hidden></p>
       <div class="dialog-actions">
         <button id="dialog-cancel" class="quiet" type="button" data-i18n="cancel"></button>
+        <button class="primary" type="submit" data-i18n="save"></button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="manual-dialog">
+    <form id="manual-form" method="dialog">
+      <h2 id="manual-dialog-title"></h2>
+      <p class="dialog-lead" data-i18n="manual_dialog_lead"></p>
+      <label><span data-i18n="field_url"></span>
+        <input name="url" type="url" required placeholder="https://example.com/notice">
+      </label>
+      <label><span data-i18n="field_name"></span> <span class="muted" data-i18n="field_name_hint"></span>
+        <input name="name" type="text" maxlength="100">
+      </label>
+      <label><span data-i18n="field_note"></span> <span class="muted" data-i18n="field_note_hint"></span>
+        <input name="note" type="text" maxlength="500" data-i18n-attr="placeholder:note_placeholder">
+      </label>
+      <p id="manual-form-error" class="form-error" hidden></p>
+      <div class="dialog-actions">
+        <button id="manual-cancel" class="quiet" type="button" data-i18n="cancel"></button>
         <button class="primary" type="submit" data-i18n="save"></button>
       </div>
     </form>

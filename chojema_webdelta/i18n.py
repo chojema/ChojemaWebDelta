@@ -34,6 +34,10 @@ MESSAGES = {
         "ko": "서버가 오류를 돌려줌 (HTTP {status})",
         "en": "The server returned an error (HTTP {status})",
     },
+    "bot_challenge": {
+        "ko": "사이트가 자동 접속을 막고 브라우저 확인을 요구합니다 (HTTP {status}). 이 앱으로는 변경을 확인할 수 없으니, 필요하면 수동 확인 목록으로 옮겨 직접 열어 보세요.",
+        "en": "The site blocks automated access and asks for a browser check (HTTP {status}). This app cannot check it for changes; if you need it, move it to the manual check list and open it yourself.",
+    },
     "bad_selector": {
         "ko": "CSS 선택자가 올바르지 않습니다: {selector}",
         "en": "The CSS selector is not valid: {selector}",
@@ -99,6 +103,10 @@ MESSAGES = {
     "site_not_found": {
         "ko": "사이트를 찾을 수 없습니다.",
         "en": "Site not found.",
+    },
+    "note_too_long": {
+        "ko": "메모는 {limit}자 이내로 적어 주세요.",
+        "en": "Keep the note within {limit} characters.",
     },
     "body_too_large": {
         "ko": "요청이 너무 큽니다.",

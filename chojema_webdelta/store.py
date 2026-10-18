@@ -4,6 +4,9 @@
 - baseline: 사용자가 마지막으로 확인(인정)한 상태. 비교의 기준.
 - current: 가장 최근 점검에서 본 상태.
 둘이 다르면 "변경됨"이고, 사용자가 확인하면 baseline이 current로 옮겨 간다.
+
+앱이 내용을 받아 올 수 없는 사이트(봇 확인 화면 등)는 manual_sites에 따로 둔다.
+여기는 점검하지 않고, 사용자가 직접 열어 볼 주소와 메모, 마지막으로 연 시각만 기록한다.
 """
 
 import sqlite3
@@ -22,6 +25,8 @@ STATUS_ERROR = "error"
 
 # 내보내기·가져오기에 담는 항목. 스냅샷과 점검 기록은 담지 않는다.
 SETTING_FIELDS = ("name", "url", "selector", "ignore_patterns")
+MANUAL_FIELDS = ("name", "url", "note")
+MAX_NOTE_LENGTH = 500
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS sites (
@@ -39,6 +44,14 @@ CREATE TABLE IF NOT EXISTS sites (
     status          TEXT,
     last_error      TEXT
 );
+CREATE TABLE IF NOT EXISTS manual_sites (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    name           TEXT NOT NULL,
+    url            TEXT NOT NULL,
+    note           TEXT NOT NULL DEFAULT '',
+    created_at     TEXT NOT NULL,
+    last_opened_at TEXT
+);
 CREATE TABLE IF NOT EXISTS settings (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -50,12 +63,18 @@ def _now() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
 
-def clean_site_fields(data: dict) -> dict:
-    """입력값을 다듬고 검증한다. 문제가 있으면 사용자에게 보여 줄 InputError(ValueError)."""
+def _clean_url(data: dict) -> tuple[str, str]:
+    """주소를 검증하고 (주소, 도메인)을 돌려준다."""
     url = str(data.get("url") or "").strip()
     parts = urlsplit(url)
     if parts.scheme not in ("http", "https") or not parts.netloc:
         raise i18n.InputError("bad_url")
+    return url, parts.netloc
+
+
+def clean_site_fields(data: dict) -> dict:
+    """입력값을 다듬고 검증한다. 문제가 있으면 사용자에게 보여 줄 InputError(ValueError)."""
+    url, domain = _clean_url(data)
     selector = str(data.get("selector") or "").strip()
     ignore_patterns = "\n".join(
         line.strip() for line in str(data.get("ignore_patterns") or "").splitlines() if line.strip()
@@ -64,8 +83,18 @@ def clean_site_fields(data: dict) -> dict:
         engine.compile_ignore_patterns(ignore_patterns)
     except engine.CheckError as exc:
         raise i18n.InputError(exc.code, **exc.params) from exc
-    name = str(data.get("name") or "").strip() or parts.netloc
+    name = str(data.get("name") or "").strip() or domain
     return {"name": name, "url": url, "selector": selector, "ignore_patterns": ignore_patterns}
+
+
+def clean_manual_fields(data: dict) -> dict:
+    """수동 확인 목록 항목의 입력값을 다듬고 검증한다."""
+    url, domain = _clean_url(data)
+    note = " ".join(str(data.get("note") or "").split())
+    if len(note) > MAX_NOTE_LENGTH:
+        raise i18n.InputError("note_too_long", limit=MAX_NOTE_LENGTH)
+    name = str(data.get("name") or "").strip() or domain
+    return {"name": name, "url": url, "note": note}
 
 
 class Store:
@@ -146,14 +175,81 @@ class Store:
             return conn.execute("DELETE FROM sites WHERE id = ?", (site_id,)).rowcount > 0
 
     def delete_sites(self, site_ids: list[int] | None = None) -> int:
-        """여러 사이트를 지우고 지운 개수를 돌려준다. site_ids가 없으면 전부 지운다."""
+        """여러 사이트를 지우고 지운 개수를 돌려준다. site_ids가 없으면 수동 확인 목록까지 전부 지운다."""
         with self._connect() as conn:
             if site_ids is None:
-                return conn.execute("DELETE FROM sites").rowcount
+                return (conn.execute("DELETE FROM sites").rowcount
+                        + conn.execute("DELETE FROM manual_sites").rowcount)
             if not site_ids:
                 return 0
             marks = ",".join("?" * len(site_ids))
             return conn.execute(f"DELETE FROM sites WHERE id IN ({marks})", site_ids).rowcount
+
+    def move_to_manual(self, site_id: int) -> int | None:
+        """점검 목록의 사이트를 수동 확인 목록으로 옮기고 새 id를 돌려준다. 없으면 None."""
+        with self._connect() as conn:
+            row = conn.execute("SELECT name, url FROM sites WHERE id = ?", (site_id,)).fetchone()
+            if row is None:
+                return None
+            cursor = conn.execute(
+                "INSERT INTO manual_sites (name, url, created_at) VALUES (?, ?, ?)",
+                (row["name"], row["url"], _now()),
+            )
+            conn.execute("DELETE FROM sites WHERE id = ?", (site_id,))
+            return cursor.lastrowid
+
+    def list_manual(self) -> list[dict]:
+        with self._connect() as conn:
+            rows = conn.execute("SELECT * FROM manual_sites ORDER BY id").fetchall()
+        return [dict(row) for row in rows]
+
+    def add_manual(self, fields: dict) -> int:
+        with self._connect() as conn:
+            cursor = conn.execute(
+                "INSERT INTO manual_sites (name, url, note, created_at) "
+                "VALUES (:name, :url, :note, :created_at)",
+                {**fields, "created_at": _now()},
+            )
+            return cursor.lastrowid
+
+    def update_manual(self, manual_id: int, fields: dict) -> bool:
+        with self._connect() as conn:
+            return conn.execute(
+                "UPDATE manual_sites SET name = :name, url = :url, note = :note WHERE id = :id",
+                {**fields, "id": manual_id},
+            ).rowcount > 0
+
+    def delete_manual(self, manual_id: int) -> bool:
+        with self._connect() as conn:
+            return conn.execute("DELETE FROM manual_sites WHERE id = ?", (manual_id,)).rowcount > 0
+
+    def mark_opened(self, manual_id: int) -> bool:
+        with self._connect() as conn:
+            return conn.execute(
+                "UPDATE manual_sites SET last_opened_at = ? WHERE id = ?", (_now(), manual_id)
+            ).rowcount > 0
+
+    def export_manual(self) -> list[dict]:
+        return [{key: item[key] for key in MANUAL_FIELDS} for item in self.list_manual()]
+
+    def import_manual(self, entries: list[dict]) -> tuple[int, int]:
+        """검증을 마친 항목들을 추가한다. 같은 주소가 이미 있으면 건너뛴다."""
+        added = skipped = 0
+        now = _now()
+        with self._connect() as conn:
+            existing = {row["url"] for row in conn.execute("SELECT url FROM manual_sites")}
+            for fields in entries:
+                if fields["url"] in existing:
+                    skipped += 1
+                    continue
+                existing.add(fields["url"])
+                conn.execute(
+                    "INSERT INTO manual_sites (name, url, note, created_at) "
+                    "VALUES (:name, :url, :note, :created_at)",
+                    {**fields, "created_at": now},
+                )
+                added += 1
+        return added, skipped
 
     def export_sites(self) -> list[dict]:
         return [{key: site[key] for key in SETTING_FIELDS} for site in self.list_sites()]
