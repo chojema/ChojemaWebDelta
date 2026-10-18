@@ -10,16 +10,18 @@
 
 ## 다운로드
 
-현재 배포 버전은 [v0.2.0](https://github.com/chojema/ChojemaWebDelta/releases/tag/v0.2.0)입니다. 아래 실행 파일에는 Python이 포함되어 있습니다.
+현재 배포 버전은 [v0.3.0](https://github.com/chojema/ChojemaWebDelta/releases/tag/v0.3.0)입니다. 아래 실행 파일에는 Python이 포함되어 있습니다.
 
 | 운영체제 | 지원 대상 | 다운로드 |
 |---|---|---|
-| Windows | 64비트 x64 | [Windows ZIP](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.2.0/ChojemaWebDelta-0.2.0-windows-x64.zip) |
-| macOS | Apple Silicon(M1 이상), arm64 | [Mac ZIP](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.2.0/ChojemaWebDelta-0.2.0-macos-arm64.zip) |
+| Windows | 64비트 x64 | [Windows ZIP](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.3.0/ChojemaWebDelta-0.3.0-windows-x64.zip) |
+| macOS | Apple Silicon(M1 이상), arm64 | 준비 중 |
 
-[SHA256 체크섬](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.2.0/SHA256SUMS.txt)으로 파일의 무결성을 확인할 수 있습니다.
-두 ZIP에는 프로그램과 함께 `LICENSE.txt`, `THIRD_PARTY_NOTICES.txt`가 들어 있습니다.
+[SHA256 체크섬](https://github.com/chojema/ChojemaWebDelta/releases/download/v0.3.0/SHA256SUMS.txt)으로 파일의 무결성을 확인할 수 있습니다.
+ZIP에는 프로그램과 함께 `LICENSE.txt`, `THIRD_PARTY_NOTICES.txt`가 들어 있습니다.
 Intel Mac과 Linux에서는 아래의 **소스로 실행** 방법을 사용하세요. 처음 실행할 때 표시될 수 있는 보안 안내는 운영체제별 실행 설명을 참고하세요.
+
+v0.3.0의 macOS 앱은 아직 올라오지 않았습니다. 그동안은 Mac에서 소스로 실행하거나, 수동 확인 목록이 없는 [v0.2.0 Mac 앱](https://github.com/chojema/ChojemaWebDelta/releases/tag/v0.2.0)을 사용하세요.
 
 ## 실행
 
@@ -38,6 +40,7 @@ Intel Mac과 Linux에서는 아래의 **소스로 실행** 방법을 사용하�
 
 [릴리스 페이지](https://github.com/chojema/ChojemaWebDelta/releases/latest)에서
 `ChojemaWebDelta-<버전>-macos-arm64.zip`을 내려받습니다. **Apple Silicon(M1 이상) Mac용**이며 Intel Mac용 실행 파일은 포함하지 않습니다. Python을 설치할 필요가 없습니다.
+v0.3.0의 Mac 앱은 아직 없으며, 그동안 최신 Mac 앱은 [v0.2.0 릴리스](https://github.com/chojema/ChojemaWebDelta/releases/tag/v0.2.0)에 있습니다.
 
 1. ZIP의 압축을 풀고 `ChojemaWebDelta.app`을 **응용 프로그램** 폴더로 옮깁니다.
 2. 앱을 더블클릭하면 브라우저에 화면이 열립니다. 끝낼 때는 화면의 **종료** 버튼을 누릅니다.
